@@ -1,7 +1,7 @@
 import json
 import os
 
-SOURCE_DIR = "/gpfs2/scratch/aarrabi/ControlNet/Data/semantic maps/"
+SOURCE_DIR = "/gpfs2/scratch/aarrabi/semantic maps/"
 TARGET_DIR = "/gpfs2/scratch/xzhang31/CVUSA/dataset/streetview/panos/"
 PROMPT = "High quality street view panorama image"
 JSON_DIR = "/gpfs2/scratch/aarrabi/ControlNet/Data/"
