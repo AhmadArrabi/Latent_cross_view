@@ -1,9 +1,9 @@
-from tutorial_dataset import MyDataset
+from CVUSA_dataset import MyDataset
 
 dataset = MyDataset()
 print(len(dataset))
 
-item = dataset[2]
+item = dataset.__getitem__(2)
 jpg = item['jpg']
 txt = item['txt']
 hint = item['hint']

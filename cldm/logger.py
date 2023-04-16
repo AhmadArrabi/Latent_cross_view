@@ -7,6 +7,7 @@ from PIL import Image
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
+FOLDER_NAME = "CVUSA 4 GPU experiment"
 
 class ImageLogger(Callback):
     def __init__(self, batch_frequency=2000, max_images=4, clamp=True, increase_log_steps=True,
@@ -26,7 +27,7 @@ class ImageLogger(Callback):
 
     @rank_zero_only
     def log_local(self, save_dir, split, images, global_step, current_epoch, batch_idx):
-        root = os.path.join(save_dir, "image_log", split)
+        root = os.path.join(save_dir, FOLDER_NAME, split)
         for k in images:
             grid = torchvision.utils.make_grid(images[k], nrow=4)
             if self.rescale:
