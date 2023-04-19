@@ -7,9 +7,16 @@ from torch.utils.data import Dataset
 JSON_DIR = "./Data/prompt.json"
 
 class MyDataset(Dataset):
-    def __init__(self):
+    def __init__(self, mode="train"):
+        self.mode = mode
+        if self.mode == "train":
+            prompt_dir = "./Data/train_prompt.json"
+        elif self.mode == "val":
+            prompt_dir = "./Data/val_prompt.json"
+        else:
+            raise RuntimeError(f"mode:{self.mode} is not implemented!")
         self.data = []
-        with open(JSON_DIR, 'rt') as f:
+        with open(prompt_dir, 'rt') as f:
             for line in f:
                 self.data.append(json.loads(line))
 
