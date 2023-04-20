@@ -25,10 +25,10 @@ model.only_mid_control = only_mid_control
 
 
 # Misc
-dataset = MyDataset()
+dataset = MyDataset(mode="train", data_dir="/mnt")
 dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=True)
 logger = ImageLogger(batch_frequency=logger_freq)
-trainer = pl.Trainer(gpus=4, precision=32, callbacks=[logger], strategy="ddp", min_epochs=5, max_epochs=30)
+trainer = pl.Trainer(gpus=3, precision=32, callbacks=[logger], strategy="ddp", min_epochs=5, max_epochs=30)
 
 # Train!
 trainer.fit(model, dataloader)

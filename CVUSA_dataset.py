@@ -1,18 +1,22 @@
+import os
 import json
+
 import cv2
 import numpy as np
 
 from torch.utils.data import Dataset
 
-JSON_DIR = "./Data/prompt.json"
+# JSON_DIR = "./Data/prompt.txt"
 
 class MyDataset(Dataset):
-    def __init__(self, mode="train"):
+    def __init__(self, mode="train", data_dir='../scratch'):
         self.mode = mode
+        self.data_dir = data_dir
+
         if self.mode == "train":
-            prompt_dir = "./Data/train_prompt.json"
+            prompt_dir = "./Data/train_prompt.txt"
         elif self.mode == "val":
-            prompt_dir = "./Data/val_prompt.json"
+            prompt_dir = "./Data/val_prompt.txt"
         else:
             raise RuntimeError(f"mode:{self.mode} is not implemented!")
         self.data = []
@@ -30,8 +34,8 @@ class MyDataset(Dataset):
         target_filename = item['target']
         prompt = item['prompt']
 
-        source = cv2.imread(source_filename)
-        target = cv2.imread(target_filename)
+        source = cv2.imread(os.path.join(self.data_dir, source_filename))
+        target = cv2.imread(os.path.join(self.data_dir, target_filename))
 
         #reshape
         w_source, h_source = source.shape[1], source.shape[0]
@@ -40,6 +44,11 @@ class MyDataset(Dataset):
         (w_source, h_source) = map(lambda x: x - x % 64, (w_source, h_source))  # resize to integer multiple of 64
         (w_target, h_target) = map(lambda x: x - x % 64, (w_target, h_target))  # resize to integer multiple of 64
 
+        # w_source = 256
+        # w_target = 256
+        # h_source = 256
+        # h_target = 256
+        
         source = cv2.resize(source, (w_source, h_source), interpolation = cv2.INTER_AREA)
         target = cv2.resize(target, (w_target, h_target), interpolation = cv2.INTER_AREA)
 
