@@ -17,6 +17,7 @@ from ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSeq
 from ldm.models.diffusion.ddpm import LatentDiffusion
 from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
+from CVUSA_dataset import TARGET_SIZE
 
 
 class ControlledUnetModel(UNetModel):
@@ -31,7 +32,7 @@ class ControlledUnetModel(UNetModel):
                 hs.append(h)
             h = self.middle_block(h, emb, context)
 
-        if control is not None:
+        if control is not None:           
             h += control.pop()
 
         for i, module in enumerate(self.output_blocks):
@@ -39,8 +40,9 @@ class ControlledUnetModel(UNetModel):
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
                 h = torch.cat([h, hs.pop() + control.pop()], dim=1)
+                
             h = module(h, emb, context)
-
+            
         h = h.type(x.dtype)
         return self.out(h)
 
@@ -292,7 +294,13 @@ class ControlNet(nn.Module):
         for module, zero_conv in zip(self.input_blocks, self.zero_convs):
             if guided_hint is not None:
                 h = module(h, emb, context)
-                h += guided_hint
+                # resize the guided signal to main SD size
+                resized_guided_hint = torch.nn.functional.interpolate(
+                    guided_hint, 
+                    size=(h.shape[2], 
+                          h.shape[3]), 
+                    mode="bilinear")
+                h += resized_guided_hint
                 guided_hint = None
             else:
                 h = module(h, emb, context)
@@ -408,7 +416,7 @@ class ControlLDM(LatentDiffusion):
     def sample_log(self, cond, batch_size, ddim, ddim_steps, **kwargs):
         ddim_sampler = DDIMSampler(self)
         b, c, h, w = cond["c_concat"][0].shape
-        shape = (self.channels, h // 8, w // 8)
+        shape = (self.channels, TARGET_SIZE // 8, TARGET_SIZE // 8)
         samples, intermediates = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
         return samples, intermediates
 
