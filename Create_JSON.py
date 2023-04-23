@@ -1,15 +1,15 @@
 import json
 import os
 
-mode = 'val'
+mode = 'train'
 CSV_splits = f"/gpfs2/scratch/xzhang31/CVUSA/dataset/splits/{mode}-19zl.csv"
-task = 'sem2street' #if we want g2a change to 'street2aerial'
+task = 'semantic2street' #if we want g2a change to 'street2aerial'
 
-if task == 'sem2street':
-    SOURCE_DIR = "/gpfs2/scratch/aarrabi/semantice maps/"
+if task == 'semantic2street':
+    SOURCE_DIR = "/gpfs2/scratch/aarrabi/semantic maps/"
     TARGET_DIR = "CVUSA/dataset/"
     PROMPT = "Photo-realistic street-view panorama image with high quality details"
-    JSON_DIR = "./Data/sem2street/"
+    JSON_DIR = "./Data/semantic2street/"
 
     if not os.path.exists(JSON_DIR):
         os.makedirs(JSON_DIR)
@@ -47,4 +47,4 @@ elif task == 'street2aerial':
                 f.write(json.dumps(temp_dict))
                 f.write('\n')
 
-else: raise Exception(f'task {task} not yet implemented please choose sem2street or street2aerial')
+else: raise RuntimeError(f'task:{task} not yet implemented! please choose semantic2street or street2aerial')
