@@ -17,7 +17,7 @@ from ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSeq
 from ldm.models.diffusion.ddpm import LatentDiffusion
 from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
-from CVUSA_dataset import TARGET_SIZE
+from CVUSA_dataset import TARGET_SIZE, W_TARGET, H_TARGET
 
 
 class ControlledUnetModel(UNetModel):
@@ -416,7 +416,7 @@ class ControlLDM(LatentDiffusion):
     def sample_log(self, cond, batch_size, ddim, ddim_steps, **kwargs):
         ddim_sampler = DDIMSampler(self)
         b, c, h, w = cond["c_concat"][0].shape
-        shape = (self.channels, TARGET_SIZE // 8, TARGET_SIZE // 8)
+        shape = (self.channels, h // 8, w // 8)
         samples, intermediates = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
         return samples, intermediates
 

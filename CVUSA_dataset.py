@@ -8,6 +8,8 @@ from torch.utils.data import Dataset
 
 # JSON_DIR = "./Data/prompt.txt"
 TARGET_SIZE = 256
+W_TARGET = 0
+H_TARGET = 0
 RESIZE_SCALE = 2.0   
 
 class MyDataset(Dataset):
@@ -97,6 +99,8 @@ class MyDataset(Dataset):
 
         # Normalize target images to [-1, 1].
         target = (target.astype(np.float32) / 127.5) - 1.0
+
+        W_TARGET, H_TARGET = w_target, h_target
 
         return dict(jpg=target, txt=prompt, hint=source)
 

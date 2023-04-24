@@ -9,8 +9,8 @@ from cldm.model import create_model, load_state_dict
 
 # Configs
 resume_path = './models/control_sd15_ini.ckpt'
-batch_size = 8
-logger_freq = 800
+batch_size = 4
+logger_freq = 200
 learning_rate = 1e-5
 sd_locked = True
 only_mid_control = False
@@ -25,10 +25,10 @@ model.only_mid_control = only_mid_control
 
 
 # Misc
-dataset = MyDataset(mode="train", data_dir="/mnt")
+dataset = MyDataset(mode="train")
 dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=True)
 logger = ImageLogger(batch_frequency=logger_freq)
-trainer = pl.Trainer(gpus=3, precision=32, callbacks=[logger], strategy="ddp", min_epochs=5, max_epochs=30)
+trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=5, max_epochs=30)
 
 # Train!
 trainer.fit(model, dataloader)
