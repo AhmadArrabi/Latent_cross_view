@@ -11,7 +11,7 @@ TARGET_SIZE = 256
 RESIZE_SCALE = 2.0   
 
 class MyDataset(Dataset):
-    def __init__(self, mode="train", data_dir='../scratch', task="semantic2street", blur_aug='normal'):
+    def __init__(self, mode="train", data_dir='/gpfs2/scratch', task="semantic2street", blur_aug='normal'):
         self.mode = mode.lower()
         self.data_dir = data_dir
         self.task = task
@@ -46,9 +46,7 @@ class MyDataset(Dataset):
         prompt = item['prompt']
 
         source = cv2.imread(os.path.join(self.data_dir, source_filename))
-        target = cv2.imread(os.path.join(self.data_dir, target_filename))
-        print(os.path.join(self.data_dir, source_filename))
-        print(os.path.join(self.data_dir, target_filename))
+        target = cv2.imread(os.path.join(self.data_dir, 'xzhang31',target_filename))
 
         #reshape
         w_source, h_source = source.shape[1], source.shape[0]
@@ -68,7 +66,7 @@ class MyDataset(Dataset):
         # h_target = 256
         
         source = cv2.resize(source, (w_source, h_source), interpolation = cv2.INTER_AREA)
-        target = cv2.resize(target, (TARGET_SIZE, TARGET_SIZE), interpolation = cv2.INTER_AREA)
+        target = cv2.resize(target, (w_target, h_target), interpolation = cv2.INTER_AREA)
 
         # Do not forget that OpenCV read images in BGR order.
         source = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
@@ -95,7 +93,7 @@ class MyDataset(Dataset):
         source = cv2.add(source, gauss)
 
         # Normalize source images to [0, 1].
-        source = source.astype(np.float32) #/ 255.0
+        source = source.astype(np.float32) / 255.0
 
         # Normalize target images to [-1, 1].
         target = (target.astype(np.float32) / 127.5) - 1.0
