@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 TARGET_SIZE = 256
 W_TARGET = 0
 H_TARGET = 0
-RESIZE_SCALE = 2.0   
+RESIZE_SCALE = 1.0   
 
 class MyDataset(Dataset):
     def __init__(self, mode="train", data_dir='/gpfs2/scratch', task="semantic2street", blur_aug='normal'):
