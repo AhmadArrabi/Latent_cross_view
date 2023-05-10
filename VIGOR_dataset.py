@@ -7,6 +7,7 @@ import random
 from torch.utils.data import DataLoader
 from .augmentations import HFlip, Rotate
 import torchvision
+import json
 
 class LimitedFoV(object):
 
@@ -40,7 +41,7 @@ def input_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
-            transforms.ColorJitter(0.2, 0.2, 0.2),
+            transforms.ColorJitter(0.3, 0.3, 0.3),
             transforms.RandomGrayscale(p=0.2),
             transforms.RandomPosterize(p=0.2, bits=4),
             transforms.GaussianBlur(kernel_size=(1, 5), sigma=(0.1, 5)),
@@ -61,43 +62,27 @@ def input_transform(size, mode):
 
 # Same loader from VIGOR, modified for pytorch
 class VIGOR(torch.utils.data.Dataset):
-    def __init__(self, mode = '', root = '/path/of/VIGOR/', same_area=True, print_bool=False, polar = '', args=None):
+    def __init__(self, mode = 'train', root = '/gpfs3/scratch/xzhang31/VIGOR', same_area=True, args=None):
         super(VIGOR, self).__init__()
 
         self.args = args
         self.root = root
-        self.polar = polar
 
         self.mode = mode
+        if self.mode is not in ['train', 'test']:
+            raise RuntimeError(f'{self.mode} is not implemented!')
+        
+        # The below size is temporary should check later
         self.sat_size = [320, 320]
         self.sat_size_default = [320, 320]
-        self.grd_size = [320, 640]
-        # if args.sat_res != 0:
-        #     self.sat_size = [args.sat_res, args.sat_res]
-        if print_bool:
-            print(self.sat_size, self.grd_size)
+        self.grd_size = [128, 512]
 
-        self.sat_ori_size = [640, 640]
-        self.grd_ori_size = [1024, 2048]
-
-        # if args.fov != 0:
-        #     self.transform_query = input_transform_fov(size=self.grd_size,fov=args.fov)
-        # else:
-        #     self.transform_query = input_transform(size=self.grd_size)
-
-        self.transform_query = input_transform(size=self.grd_size, mode=self.mode)
-
-        # if len(polar) == 0:
-        #     self.transform_reference = input_transform(size=self.sat_size)
-        # else:
-        #     self.transform_reference = input_transform(size=self.sat_ori_size)
-
-        self.transform_reference = input_transform(size=self.sat_size, mode=self.mode)
-
-        self.to_tensor = transforms.ToTensor()
+        # transforms notice strong aug is added
+        self.transform_ground = input_transform(size=self.grd_size, mode=self.mode)
+        self.transform_aerial = input_transform(size=self.sat_size, mode=self.mode)
 
         self.same_area = same_area
-        label_root = 'splits'
+        label_root = 'splits__corrected'
 
         if same_area:
             self.train_city_list = ['NewYork', 'Seattle', 'SanFrancisco', 'Chicago']
@@ -106,194 +91,92 @@ class VIGOR(torch.utils.data.Dataset):
             self.train_city_list = ['NewYork', 'Seattle']
             self.test_city_list = ['SanFrancisco', 'Chicago']
 
-        self.train_sat_list = []
-        self.train_sat_index_dict = {}
-        self.delta_unit = [0.0003280724526376747, 0.00043301140280175833]
-        idx = 0
-        # load sat list
-        for city in self.train_city_list:
-            train_sat_list_fname = os.path.join(self.root, label_root, city, 'satellite_list.txt')
-            with open(train_sat_list_fname, 'r') as file:
-                for line in file.readlines():
-                    self.train_sat_list.append(os.path.join(self.root, city, 'satellite', line.replace('\n', '')))
-                    self.train_sat_index_dict[line.replace('\n', '')] = idx
-                    idx += 1
-            if print_bool:
-                print('InputData::__init__: load', train_sat_list_fname, idx)
-        self.train_sat_list = np.array(self.train_sat_list)
-        self.train_sat_data_size = len(self.train_sat_list)
-        if print_bool:
-            print('Train sat loaded, data size:{}'.format(self.train_sat_data_size))
-
-        self.test_sat_list = []
-        self.test_sat_index_dict = {}
-        self.__cur_sat_id = 0  # for test
-        idx = 0
-        for city in self.test_city_list:
-            test_sat_list_fname = os.path.join(self.root, label_root, city, 'satellite_list.txt')
-            with open(test_sat_list_fname, 'r') as file:
-                for line in file.readlines():
-                    self.test_sat_list.append(os.path.join(self.root, city, 'satellite', line.replace('\n', '')))
-                    self.test_sat_index_dict[line.replace('\n', '')] = idx
-                    idx += 1
-            if print_bool:
-                print('InputData::__init__: load', test_sat_list_fname, idx)
-        self.test_sat_list = np.array(self.test_sat_list)
-        self.test_sat_data_size = len(self.test_sat_list)
-        if print_bool:
-            print('Test sat loaded, data size:{}'.format(self.test_sat_data_size))
-
-        self.train_list = []
-        self.train_label = []
-        self.train_sat_cover_dict = {}
-        self.train_delta = []
-        idx = 0
-        for city in self.train_city_list:
-            # load train panorama list
-            train_label_fname = os.path.join(self.root, label_root, city, 'same_area_balanced_train.txt'
-            if self.same_area else 'pano_label_balanced.txt')
-            with open(train_label_fname, 'r') as file:
-                for line in file.readlines():
-                    data = np.array(line.split(' '))
-                    label = []
-                    for i in [1, 4, 7, 10]:
-                        label.append(self.train_sat_index_dict[data[i]])
-                    label = np.array(label).astype(int)
-                    delta = np.array([data[2:4], data[5:7], data[8:10], data[11:13]]).astype(float)
-                    self.train_list.append(os.path.join(self.root, city, 'panorama', data[0]))
-                    self.train_label.append(label)
-                    self.train_delta.append(delta)
-                    if not label[0] in self.train_sat_cover_dict:
-                        self.train_sat_cover_dict[label[0]] = [idx]
-                    else:
-                        self.train_sat_cover_dict[label[0]].append(idx)
-                    idx += 1
-            if print_bool:
-                print('InputData::__init__: load ', train_label_fname, idx)
-        self.train_data_size = len(self.train_list)
-        self.train_label = np.array(self.train_label)
-        self.train_delta = np.array(self.train_delta)
-        if print_bool:
-            print('Train grd loaded, data_size: {}'.format(self.train_data_size))
-
-        self.__cur_test_id = 0
+        self.train_dict = {} # mapping between aerial images to ground images
+        self.train_list = {} # aerial images list
+        for c in self.train_city_list:
+            json_file = 'same_area_balanced_train__corrected.json' if same_area else "pano_label_balanced__corrected.json"
+            with open(os.path.join(self.root, label_root, f'{c}_AerialMajorSplit', json_file), 'r') as j:
+                city_dict = json.load(j)
+                for k in city_dict.keys():
+                    self.train_list.append(k)
+                self.train_dict = self.train_dict | city_dict # aggregate dictionaries
+        
+        self.test_dict = {}
         self.test_list = []
-        self.test_label = []
-        self.test_sat_cover_dict = {}
-        self.test_delta = []
-        idx = 0
-        for city in self.test_city_list:
-            # load test panorama list
-            test_label_fname = os.path.join(self.root, label_root, city, 'same_area_balanced_test.txt'
-            if self.same_area else 'pano_label_balanced.txt')
-            with open(test_label_fname, 'r') as file:
-                for line in file.readlines():
-                    data = np.array(line.split(' '))
-                    label = []
-                    for i in [1, 4, 7, 10]:
-                        label.append(self.test_sat_index_dict[data[i]])
-                    label = np.array(label).astype(int)
-                    delta = np.array([data[2:4], data[5:7], data[8:10], data[11:13]]).astype(float)
-                    self.test_list.append(os.path.join(self.root, city, 'panorama', data[0]))
-                    self.test_label.append(label)
-                    self.test_delta.append(delta)
-                    if not label[0] in self.test_sat_cover_dict:
-                        self.test_sat_cover_dict[label[0]] = [idx]
-                    else:
-                        self.test_sat_cover_dict[label[0]].append(idx)
-                    idx += 1
-            if print_bool:
-                print('InputData::__init__: load ', test_label_fname, idx)
-        self.test_data_size = len(self.test_list)
-        self.test_label = np.array(self.test_label)
-        self.test_delta = np.array(self.test_delta)
-        if print_bool:
-            print('Test grd loaded, data size: {}'.format(self.test_data_size))
-
-        self.train_sat_cover_list = list(self.train_sat_cover_dict.keys())
-
-
-    def check_overlap(self, id_list, idx):
-        output = True
-        sat_idx = self.train_label[idx]
-        for id in id_list:
-            sat_id = self.train_label[id]
-            for i in sat_id:
-                 if i in sat_idx:
-                    output = False
-                    return output
-        return output
-
-    def get_init_idx(self):
-        # return random.randrange(self.train_data_size)  # sampling according to grd
-        return random.choice(self.train_sat_cover_dict[random.choice(self.train_sat_cover_list)])
+        for c in self.test_city_list:
+            json_file = 'same_area_balanced_test__corrected.json' if same_area else "pano_label_balanced__corrected.json"
+            with open(os.path.join(self.root, label_root, f'{c}_AerialMajorSplit', json_file), 'r') as j:
+                city_dict = json.load(j)
+                for k in city_dict.keys():
+                    self.test_list.append(k)
+                self.test_dict = self.test_dict | city_dict
 
     def __getitem__(self, index, debug=False):
-        if 'train' in self.mode:
-            idx = random.choice(self.train_sat_cover_dict[self.train_sat_cover_list[index%len(self.train_sat_cover_list)]])
-            img_query = Image.open(self.train_list[idx])
-            img_reference = Image.open(self.train_sat_list[self.train_label[idx][0]]).convert('RGB')
-
-            # img_query = self.transform_query(img_query)
-            # img_reference = self.transform_reference(img_reference)
-
-            satellite_first = self.transform_reference(img_reference)
-            ground_first = self.transform_query(img_query)
-
-            satellite_second = self.transform_reference(img_reference)
-            ground_second = self.transform_query(img_query)
-
-            #Layout aug
-            hflip = random.randint(0,1)
-            if hflip == 1:
-                satellite_first, ground_first = HFlip(satellite_first, ground_first)
-                satellite_second, ground_second = HFlip(satellite_second, ground_second)
-            else:
-                pass
-
-            orientation = random.choice(["left", "right", "back", "none"])
-            if orientation == "none":
-                pass
-            else:
-                satellite_first, ground_first = Rotate(satellite_first, ground_first, orientation, False)
-                satellite_second, ground_second = Rotate(satellite_second, ground_second, orientation, False)
-
-            # if self.args.crop:
-            #     atten_sat = Image.open(os.path.join(self.args.resume.replace(self.args.resume.split('/')[-1],''),'attention','train', str(idx)+'.png')).convert('RGB')
-            #     return img_query, img_reference, torch.tensor(idx), torch.tensor(idx), torch.tensor(self.train_delta[idx, 0]), self.to_tensor(atten_sat)
-            # return img_query, img_reference, torch.tensor(idx), torch.tensor(idx), torch.tensor(self.train_delta[idx, 0]), 0
-
-            return ground_first, ground_second, satellite_first, satellite_second
-        elif 'scan_val' in self.mode:
-            img_reference = Image.open(self.test_sat_list[index]).convert('RGB')
-            img_reference = self.transform_reference(img_reference)
-            img_query = random.choice(self.test_list)
-            img_query = Image.open(img_query)
-            img_query = self.transform_query(img_query)
-            return img_query, img_reference, torch.tensor(index), torch.tensor(index), 0, 0
-        elif 'test_reference' in self.mode:
-            img_reference = Image.open(self.test_sat_list[index]).convert('RGB')
-            img_reference = self.transform_reference(img_reference)
-            # if self.args.crop:
-            #     atten_sat = Image.open(os.path.join(self.args.resume.replace(self.args.resume.split('/')[-1],''),'attention','val', str(index)+'.png')).convert('RGB')
-            #     return img_reference, torch.tensor(index), self.to_tensor(atten_sat)
-            return img_reference, torch.tensor(index), 0
-        elif 'test_query' in self.mode:
-            img_query = Image.open(self.test_list[index])
-            img_query = self.transform_query(img_query)
-            return img_query, torch.tensor(index), torch.tensor(self.test_label[index][0])
+        #TODO
+        # Implement random sampled center in aerial images
+        # Implement LS aug (rotate, flip)
+        if self.mode == 'train':
+            prompt = 'Photo-realistic aerial-view image with high quality details.'
+            aerial_image_name = self.train_list[index]
+            ground_dict = self.test_dict[aerial_image_name]
+            
+            aerial_image = self.transforms_aerial(Image.open(aerial_image_name))
+            
+            ground_image_list = []
+            ground_delta_list = []
+            num_g_imgs = len(ground_dict)
+            for k,v in ground_dict.items():
+                ground_image_list.append(
+                    self.transform_ground(
+                        Image.open(k)
+                    )
+                )
+                ground_delta_list.append([int(v[0]), int(v[1])])
+                
+            ground_imgs = torch.cat(ground_image_list, dim=0)
+            ground_deltas = torch.tensor(ground_delta_list)
+            
+            return dict(jpg=aerial_image, 
+                        txt=prompt, 
+                        hint=ground_imgs, 
+                        delta=ground_deltas, 
+                        len=num_g_imgs)
+            
+        
+        elif self.mode == 'test':
+            prompt = 'Photo-realistic aerial-view image with high quality details.'
+            aerial_image_name = self.test_list[index]
+            ground_dict = self.test_dict[aerial_image_name]
+            
+            aerial_image = self.transforms_aerial(Image.open(aerial_image_name))
+            
+            ground_image_list = []
+            ground_delta_list = []
+            num_g_imgs = len(ground_dict)
+            for k,v in ground_dict.items():
+                ground_image_list.append(
+                    self.transform_ground(
+                        Image.open(k)
+                    )
+                )
+                ground_delta_list.append([int(v[0]), int(v[1])])
+                
+            ground_imgs = torch.cat(ground_image_list, dim=0)
+            ground_deltas = torch.tensor(ground_delta_list)
+            
+            return dict(jpg=aerial_image, 
+                        txt=prompt, 
+                        hint=ground_imgs, 
+                        delta=ground_deltas, 
+                        len=num_g_imgs)
         else:
             print('not implemented!!')
             raise Exception
 
     def __len__(self):
-        if 'train' in self.mode:
-            return len(self.train_sat_cover_list) * 2  # one aerial image has 2 positive queries
-        elif 'scan_val' in self.mode:
-            return len(self.test_sat_list)
-        elif 'test_reference' in self.mode:
-            return len(self.test_sat_list)
-        elif 'test_query' in self.mode:
+        if self.mode == 'train':
+            return len(self.train_list)
+        elif self.mode == 'test':
             return len(self.test_list)
         else:
             print('not implemented!')
