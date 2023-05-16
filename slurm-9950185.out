@@ -1,0 +1,22 @@
+logging improved.
+No module 'xformers'. Proceeding without it.
+ControlLDM: Running in eps-prediction mode
+DiffusionWrapper has 859.52 M params.
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 4, 32, 32) = 4096 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+Loaded model config from [./models/cldm_v15.yaml]
+Loaded state_dict from [./models/control_sd15_ini.ckpt]
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/gpfs2/scratch/aarrabi/miniconda3/envs/control/lib/python3.8/site-packages/pytorch_lightning/trainer/configuration_validator.py:118: UserWarning: You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.
+  rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
+/gpfs2/scratch/aarrabi/miniconda3/envs/control/lib/python3.8/site-packages/pytorch_lightning/trainer/configuration_validator.py:280: LightningDeprecationWarning: Base `LightningModule.on_train_batch_start` hook signature has changed in v1.5. The `dataloader_idx` argument will be removed in v1.7.
+  rank_zero_deprecation(
+/gpfs2/scratch/aarrabi/miniconda3/envs/control/lib/python3.8/site-packages/pytorch_lightning/trainer/configuration_validator.py:287: LightningDeprecationWarning: Base `Callback.on_train_batch_end` hook signature has changed in v1.5. The `dataloader_idx` argument will be removed in v1.7.
+  rank_zero_deprecation(
+initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/3
+[W socket.cpp:401] [c10d] The server socket cannot be initialized on [::]:32914 (errno: 97 - Address family not supported by protocol).
+[W socket.cpp:558] [c10d] The client socket cannot be initialized to connect to [localhost.localdomain]:32914 (errno: 97 - Address family not supported by protocol).
+slurmstepd: error: *** JOB 9950185 ON dg-gpunode06 CANCELLED AT 2023-04-24T22:59:54 ***
