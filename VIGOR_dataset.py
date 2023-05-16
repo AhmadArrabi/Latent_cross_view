@@ -5,7 +5,7 @@ import numpy as np
 import os
 import random
 from torch.utils.data import DataLoader
-from .augmentations import HFlip, Rotate
+#from .augmentations import HFlip, Rotate
 import torchvision
 import json
 
@@ -57,19 +57,18 @@ def input_transform(size, mode):
                                 std=[0.229, 0.224, 0.225]),
         ])
     else:
-        raise RuntimeError(f"mode {mode} is not implemented")
-
+        raise RuntimeError(f"{mode} not implemented")
 
 # Same loader from VIGOR, modified for pytorch
 class VIGOR(torch.utils.data.Dataset):
-    def __init__(self, mode = 'train', root = '/gpfs3/scratch/xzhang31/VIGOR', same_area=True, args=None):
+    def __init__(self, mode = 'train', root = '/gpfs2/scratch/xzhang31/VIGOR', same_area=True, args=None):
         super(VIGOR, self).__init__()
 
         self.args = args
         self.root = root
 
         self.mode = mode
-        if self.mode is not in ['train', 'test']:
+        if self.mode not in ['train', 'test']:
             raise RuntimeError(f'{self.mode} is not implemented!')
         
         # The below size is temporary should check later
@@ -92,7 +91,7 @@ class VIGOR(torch.utils.data.Dataset):
             self.test_city_list = ['SanFrancisco', 'Chicago']
 
         self.train_dict = {} # mapping between aerial images to ground images
-        self.train_list = {} # aerial images list
+        self.train_list = [] # aerial images list
         for c in self.train_city_list:
             json_file = 'same_area_balanced_train__corrected.json' if same_area else "pano_label_balanced__corrected.json"
             with open(os.path.join(self.root, label_root, f'{c}_AerialMajorSplit', json_file), 'r') as j:
@@ -119,8 +118,10 @@ class VIGOR(torch.utils.data.Dataset):
             prompt = 'Photo-realistic aerial-view image with high quality details.'
             aerial_image_name = self.train_list[index]
             ground_dict = self.test_dict[aerial_image_name]
+
+            print(aerial_image_name)
             
-            aerial_image = self.transforms_aerial(Image.open(aerial_image_name))
+            aerial_image = self.transform_aerial(Image.open(aerial_image_name))
             
             ground_image_list = []
             ground_delta_list = []
@@ -147,9 +148,11 @@ class VIGOR(torch.utils.data.Dataset):
             prompt = 'Photo-realistic aerial-view image with high quality details.'
             aerial_image_name = self.test_list[index]
             ground_dict = self.test_dict[aerial_image_name]
+
+            print(aerial_image_name)
             
-            aerial_image = self.transforms_aerial(Image.open(aerial_image_name))
-            
+            aerial_image = self.transform_aerial(Image.open(aerial_image_name))
+
             ground_image_list = []
             ground_delta_list = []
             num_g_imgs = len(ground_dict)
@@ -230,7 +233,7 @@ def Lat_Lng(Lat_A, Lng_A, distance=[320*0.114, 320*0.114]):
 
 
 if __name__ == "__main__":
-    dataset = VIGOR(mode="train",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
+    dataset = VIGOR(mode="train", same_area=True)
     # dataset = VIGOR(mode="test_query",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
     # dataset = VIGOR(mode="test_reference",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=1)
