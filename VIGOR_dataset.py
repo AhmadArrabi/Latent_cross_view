@@ -119,9 +119,11 @@ class VIGOR(torch.utils.data.Dataset):
             aerial_image_name = self.train_list[index]
             ground_dict = self.test_dict[aerial_image_name]
 
-            print(aerial_image_name)
+            # print(aerial_image_name)
+            temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r')
+            temp_img = temp_img.convert('RGB')
             
-            aerial_image = self.transform_aerial(Image.open(aerial_image_name))
+            aerial_image = self.transform_aerial(temp_img)
             
             ground_image_list = []
             ground_delta_list = []
@@ -129,10 +131,10 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        Image.open(k)
+                        Image.open(os.path.join(self.root,k), 'r')
                     )
                 )
-                ground_delta_list.append([int(v[0]), int(v[1])])
+                ground_delta_list.append([float(v[0]), float(v[1])])
                 
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
@@ -148,10 +150,9 @@ class VIGOR(torch.utils.data.Dataset):
             prompt = 'Photo-realistic aerial-view image with high quality details.'
             aerial_image_name = self.test_list[index]
             ground_dict = self.test_dict[aerial_image_name]
-
-            print(aerial_image_name)
             
-            aerial_image = self.transform_aerial(Image.open(aerial_image_name))
+            temp_img = Image.open(aerial_image_name)
+            aerial_image = self.transform_aerial(temp_img)
 
             ground_image_list = []
             ground_delta_list = []
@@ -163,7 +164,7 @@ class VIGOR(torch.utils.data.Dataset):
                     )
                 )
                 ground_delta_list.append([int(v[0]), int(v[1])])
-                
+
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
             
@@ -236,13 +237,17 @@ if __name__ == "__main__":
     dataset = VIGOR(mode="train", same_area=True)
     # dataset = VIGOR(mode="test_query",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
     # dataset = VIGOR(mode="test_reference",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
     idx = 0
     for i in dataloader:
-        torchvision.utils.save_image(i[0], "grd_f.png")
-        torchvision.utils.save_image(i[1], "grd_s.png")
-        torchvision.utils.save_image(i[2], "sat_f.png")
-        torchvision.utils.save_image(i[3], "sat_s.png")
+        torchvision.utils.save_image(i['jpg'], "aerial.png")
+        num_channel = i['hint'].shape[1]
+        num_images = int(num_channel) // 3
+        grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
+        torchvision.utils.save_image(grd_images, "grd.png")
+        print(i['txt'])
+        print(i['delta'])
+        print(i['len'])
         if idx > 3:
             break
         idx += 1
