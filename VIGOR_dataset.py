@@ -40,21 +40,21 @@ def input_transform_fov(size, fov):
 def input_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
-            transforms.Resize(size=tuple(size)),
-            transforms.ColorJitter(0.3, 0.3, 0.3),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.RandomPosterize(p=0.2, bits=4),
-            transforms.GaussianBlur(kernel_size=(1, 5), sigma=(0.1, 5)),
+            #transforms.Resize(size=tuple(size)),
+            #transforms.ColorJitter(0.3, 0.3, 0.3),
+            #transforms.RandomGrayscale(p=0.2),
+            #transforms.RandomPosterize(p=0.2, bits=4),
+            #transforms.GaussianBlur(kernel_size=(1, 5), sigma=(0.1, 5)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                std=[0.229, 0.224, 0.225]),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            #                    std=[0.229, 0.224, 0.225]),
         ])
     elif "test" in mode:
         return transforms.Compose([
-            transforms.Resize(size=tuple(size)),
+            #transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                std=[0.229, 0.224, 0.225]),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            #                    std=[0.229, 0.224, 0.225]),
         ])
     else:
         raise RuntimeError(f"{mode} not implemented")
@@ -97,6 +97,7 @@ class VIGOR(torch.utils.data.Dataset):
             with open(os.path.join(self.root, label_root, f'{c}_AerialMajorSplit', json_file), 'r') as j:
                 city_dict = json.load(j)
                 for k in city_dict.keys():
+                    # TODO: MODIFY THE JASON FILE IN GPFS3, ADD FILE PATH, E.G., NEWYORK/SATELLITE/IMG.PNG INSTEAD OF IMG.PNG
                     self.train_list.append(k)
                 self.train_dict = self.train_dict | city_dict # aggregate dictionaries
         
@@ -111,7 +112,7 @@ class VIGOR(torch.utils.data.Dataset):
                 self.test_dict = self.test_dict | city_dict
 
     def __getitem__(self, index, debug=False):
-        #TODO
+        # TODO
         # Implement random sampled center in aerial images
         # Implement LS aug (rotate, flip)
         if self.mode == 'train':
@@ -119,7 +120,6 @@ class VIGOR(torch.utils.data.Dataset):
             aerial_image_name = self.train_list[index]
             ground_dict = self.test_dict[aerial_image_name]
 
-            # print(aerial_image_name)
             temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r')
             temp_img = temp_img.convert('RGB')
             
@@ -160,10 +160,10 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        Image.open(k)
+                        Image.open(os.path.join(self.root,k), 'r')
                     )
                 )
-                ground_delta_list.append([int(v[0]), int(v[1])])
+                ground_delta_list.append([float(v[0]), float(v[1])])
 
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
@@ -245,9 +245,7 @@ if __name__ == "__main__":
         num_images = int(num_channel) // 3
         grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
         torchvision.utils.save_image(grd_images, "grd.png")
-        print(i['txt'])
-        print(i['delta'])
-        print(i['len'])
-        if idx > 3:
+        print(i)
+        if idx >= 1:
             break
         idx += 1

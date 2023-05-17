@@ -1,5 +1,6 @@
 from PIL import Image
 import numpy as np
+import math
 
 def sample_within_bounds(signal, x, y, bounds):
 
@@ -40,45 +41,54 @@ def sample_bilinear(signal, rx, ry):
     return (iy1 - ry)[...,na] * fx1 + (ry - iy0)[...,na] * fx2
 
 
-img = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/__7jkfc7WRIyUjPhm6AM7w,40.763530,-73.973548,.jpg')
+pano = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/rTW64elYRVtD5DWJ9kBgnA,40.731011,-73.995289,.jpg')
+sat = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/satellite/satellite_40.7309416656_-73.9953203614.png')
+sat = sat.convert('RGB')
 
-cropped_im = img.crop((0, int(img.size[1]*0.5), img.size[0], img.size[1]))
-cropped = np.array(cropped_im)
+cropped_pano = pano.crop((0, int(pano.size[1]*0.5), pano.size[0], pano.size[1]))
+pano_arr = np.array(pano)
+sat_arr = np.array(sat)
 
-############################ Apply Polar Transform to Aerial Images in CVUSA Dataset #############################
-S = 750  # Original size of the aerial image
-height = 122  # Height of polar transformed aerial image
-width = 671   # Width of polar transformed aerial image
+############################ Polar Transform #############################
+S = sat.size[0]  # Original size of the aerial image
+#height = 122  # Height of polar transformed aerial image
+#width = 671   # Width of polar transformed aerial image
+#height = pano_arr.shape[0]  # Height of polar transformed aerial image
+#width = pano_arr.shape[1]    # Width of polar transformed aerial image
+#
+#i = np.arange(0, height)
+#j = np.arange(0, width)
+#jj, ii = np.meshgrid(j, i)
+#
+#y = S/2. - S/2./height*(height-1-ii)*np.sin(2*np.pi*jj/width)
+#x = S/2. + S/2./height*(height-1-ii)*np.cos(2*np.pi*jj/width)
+#
+#test = sample_bilinear(sat_arr, x, y)
+#Image.fromarray(np.uint8(test)).save('test.png')
 
-i = np.arange(0, height)
-j = np.arange(0, width)
+############################ bird's eye #############################
+# print(pano.size) (width, height)
+height = sat.size[0]   # Height of polar transformed aerial image
+width = sat.size[1]    # Width of polar transformed aerial image
+c = 100 
+
+i = np.arange(0, 2000)
+j = np.arange(0, 2000)
 jj, ii = np.meshgrid(j, i)
 
-y = S/2. - S/2./height*(height-1-ii)*np.sin(2*np.pi*jj/width)
-x = S/2. + S/2./height*(height-1-ii)*np.cos(2*np.pi*jj/width)
+y = (width*np.arctan((height-ii)/jj))/(2*np.pi)
+x = height*(1-(np.arctan(np.sqrt(1+np.power((height-ii)/jj, 2))*jj/c))/np.pi) + 50
 
+#y = S/2. - S/2./height*(height-1-ii)*np.sin(2*np.pi*jj/width)
+#x = S/2. + S/2./height*(height-1-ii)*np.cos(2*np.pi*jj/width)
 
-test = sample_bilinear(cropped, x, y)
+print(f'jj\n{jj}\n{jj.shape}\nii\n{ii}\n{ii.shape}')
+print(f'x\n{x}\n{x.shape}\ny\n{y}\n{y.shape}')
+
+test = sample_bilinear(pano_arr, x, y)
 Image.fromarray(np.uint8(test)).save('test.png')
-
-###########################################################################################################################
-
-i = np.arange(0, 1024)
-j = np.arange(0, 1024)
-jj, ii = np.meshgrid(j, i)
-
-H = img.size[1] 
-W = img.size[0]
-
-r = np.tan(((H-ii)*np.pi)/H)
-theta = 2*np.pi*jj/W
-y = -r*np.sin(theta)
-x = r*np.cos(theta)
-
-test = sample_bilinear(cropped, x, y)
-
-Image.fromarray(np.uint8(test)).save('test.png')
-
+Image.fromarray(np.uint8(pano_arr)).save('test_pp.png')
+Image.fromarray(np.uint8(sat_arr)).save('test_ss.png')
 
 
 
