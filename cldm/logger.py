@@ -7,7 +7,7 @@ from PIL import Image
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-FOLDER_NAME = "CVUSA 4 GPU experiment"
+FOLDER_NAME = "CVUSA blur exp"
 
 class ImageLogger(Callback):
     def __init__(self, batch_frequency=2000, max_images=4, clamp=True, increase_log_steps=True,
