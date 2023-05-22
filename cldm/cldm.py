@@ -46,7 +46,7 @@ class ControlledUnetModel(UNetModel):
         h = h.type(x.dtype)
         return self.out(h)
 
-
+#TODO your own controlNET
 class ControlNet(nn.Module):
     def __init__(
             self,
@@ -323,6 +323,8 @@ class ControlLDM(LatentDiffusion):
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
+        # TODO
+        # DETERMINE HOW THE SEQUENCE OF GROUND IMAGES ARE PROCESSED 
         x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs)
         control = batch[self.control_key]
         if bs is not None:

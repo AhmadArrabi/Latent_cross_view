@@ -10,7 +10,6 @@ import torchvision
 import json
 
 class LimitedFoV(object):
-
     def __init__(self, fov=360.):
         self.fov = fov
 
@@ -135,7 +134,19 @@ class VIGOR(torch.utils.data.Dataset):
                     )
                 )
                 ground_delta_list.append([float(v[0]), float(v[1])])
+
+            # padding
+            if num_g_imgs<=13:
+                zero_tensor = torch.zeros(ground_image_list[0].shape)
+                remaining_dummy_tensors = 14 - num_g_imgs
+                for i in range(remaining_dummy_tensors):
+                    ground_image_list.append(zero_tensor)
+                    ground_delta_list.append([0.0, 0.0])
                 
+            # NOTE: ground images were concat on dim 0 so we'll have to reshape them in training
+            #       While satellite images didnt have this as they concat on a new dim 
+            #       e.g., batch.gnd.shape = [4, 42, width, height] 4 samples each has 12 ground images
+            #       batch.sat.shape = [4, 3, width, height], 4 samples each has a sat image
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
             
@@ -165,6 +176,17 @@ class VIGOR(torch.utils.data.Dataset):
                 )
                 ground_delta_list.append([float(v[0]), float(v[1])])
 
+            ground_imgs = torch.cat(ground_image_list, dim=0)
+            ground_deltas = torch.tensor(ground_delta_list)
+
+            # padding
+            if len(ground_image_list)<=13:
+                zero_tensor = torch.zeros_like(ground_image_list[0])
+                remaining_dummy_tensors = 14 - len(ground_image_list)
+                for i in range(remaining_dummy_tensors):
+                    ground_image_list.append(zero_tensor)
+                    ground_delta_list.append(0.0)
+                
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
             
@@ -232,20 +254,21 @@ def Lat_Lng(Lat_A, Lng_A, distance=[320*0.114, 320*0.114]):
     delta_lng = np.arccos((C_lng-np.sin(lat_A)*np.sin(lat_A))/np.cos(lat_A)/np.cos(lat_A))
     return np.array([delta_lat * 180. / np.pi, delta_lng * 180. / np.pi])
 
-
 if __name__ == "__main__":
     dataset = VIGOR(mode="train", same_area=True)
     # dataset = VIGOR(mode="test_query",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
     # dataset = VIGOR(mode="test_reference",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=1)
     idx = 0
     for i in dataloader:
-        torchvision.utils.save_image(i['jpg'], "aerial.png")
-        num_channel = i['hint'].shape[1]
-        num_images = int(num_channel) // 3
-        grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
-        torchvision.utils.save_image(grd_images, "grd.png")
-        print(i)
+        #torchvision.utils.save_image(i['jpg'], "aerial.png")
+        #num_channel = i['hint'].shape[1]
+        #num_images = int(num_channel) // 3
+        #grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
+        #torchvision.utils.save_image(grd_images, "grd.png")
+        print(idx, "#"*30)
+        print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
+               '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])
         if idx >= 1:
             break
         idx += 1

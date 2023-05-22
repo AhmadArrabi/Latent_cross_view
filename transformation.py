@@ -46,8 +46,74 @@ sat = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/satellite/satellite_40.7
 sat = sat.convert('RGB')
 
 cropped_pano = pano.crop((0, int(pano.size[1]*0.5), pano.size[0], pano.size[1]))
-pano_arr = np.array(pano)
+flipped_pano = ImageOps.flip(pano)
+flip = True
+
+if flip:
+    pano_arr = np.array(flipped_pano)
+else:
+    pano_arr = np.array(pano)
 sat_arr = np.array(sat)
+######################################################################################################
+height = pano.height  # Height of polar transformed aerial image
+width = pano.width    # Width of polar transformed aerial image
+
+i = np.arange(0, width)
+j = np.arange(0, height)
+ii, jj = np.meshgrid(i, j)
+
+y = ii
+x = np.log1p(jj*0.025)
+x = (jj.max()-jj.min())*(x-x.min())/(x.max()-x.min()) + jj.min() 
+
+test = sample_bilinear(pano_arr, x, y)
+Image.fromarray(np.uint8(test)).save('test_stretch.png')
+#############################################scipy polar###############################################333
+from scipy.ndimage import map_coordinates
+
+def linear_polar(img, o=None, r=None, output=None, order=1, cont=0):
+    if o is None: o = np.array(img.shape[:2])/2 - 0.5
+    if r is None: r = (np.array(img.shape[:2])**2).sum()**0.5/2
+    if output is None:
+        shp = int(round(r)), int(round(r*2*np.pi))
+        output = np.zeros(shp, dtype=img.dtype)
+    elif isinstance(output, tuple):
+        output = np.zeros(output, dtype=img.dtype)
+    out_h, out_w = output.shape
+    out_img = np.zeros((out_h, out_w), dtype=img.dtype)
+    rs = np.linspace(0, r, out_h)
+    ts = np.linspace(0, np.pi*2, out_w)
+    xs = rs[:,None] * np.cos(ts) + o[1]
+    ys = rs[:,None] * np.sin(ts) + o[0]
+    map_coordinates(img, (ys, xs), order=order, output=output)
+    return output
+
+def polar_linear(img, o=None, r=None, output=None, order=1, cont=0):
+    if r is None: r = img.shape[0]
+    if output is None:
+        output = np.zeros((r*2, r*2), dtype=img.dtype)
+    elif isinstance(output, tuple):
+        output = np.zeros(output, dtype=img.dtype)
+    if o is None: o = np.array(output.shape)/2 - 0.5
+    out_h, out_w = output.shape
+    ys, xs = np.mgrid[:out_h, :out_w] - o[:,None,None]
+    rs = (ys**2+xs**2)**0.5
+    ts = np.arccos(xs/rs)
+    ts[ys<0] = np.pi*2 - ts[ys<0]
+    ts *= (img.shape[1]-1)/(np.pi*2)
+    map_coordinates(img, (rs, ts), order=order, output=output)
+    return output
+
+#out = linear_polar(pano_arr[:,:,0])
+img = np.expand_dims(polar_linear(test[:,:,0], output=(2000,2000)), axis=-1)
+img2 = np.expand_dims(polar_linear(test[:,:,1], output=(2000,2000)), axis=-1)
+img3 = np.expand_dims(polar_linear(test[:,:,2], output=(2000,2000)), axis=-1)
+img = np.concatenate((img,img2,img3), axis=-1)
+#img = polar_linear(np.array(ImageOps.flip(Image.fromarray(np.uint8(test))))[:,:,1], output=(2500,2500))
+
+
+#Image.fromarray(np.uint8(out)).save('test_scipy_.png')
+Image.fromarray(np.uint8(img)).save('test_scipy_polar.png')
 
 ############################ Polar Transform #############################
 #S = sat.size[0]  # Original size of the aerial image
@@ -73,202 +139,149 @@ sat_arr = np.array(sat)
 #c = 100
 #
 #ii, jj = np.meshgrid(xp, yp) #horizontal xp, vertical yp
-#ii=ii+0.001
+##ii=ii+0.001
 #
 #center_x, center_y = pano.width // 2, pano.height // 2
+#circle_radius = 500
+#circle_diameter = circle_radius * 2
 #
-#xb = sat.height*(1 - np.arctan( np.sqrt(1 + np.power(((2*sat.height-jj)/(ii)), 2))*ii/c ))
-#yb = sat.width*np.arctan((2*sat.height-jj)/ii)
+#r = np.sqrt(ii - circle_radius ** 2 + jj - circle_radius ** 2)
+#theta = np.arctan2(jj - circle_radius, ii - circle_radius)
+#
+## Calculate the normalized coordinates within the original image
+#norm_x = (theta / (2 * np.pi)) + 0.5
+#norm_y = (r / circle_radius)
+#
+## Map the normalized coordinates to the range of the original image
+#xb = (norm_x * pano.width).astype(int)
+#yb = (norm_y * pano.height).astype(int)
 
 #xb = sat.height*(1 - np.arctan( np.sqrt(1 + np.power(((2*sat.height-jj)/(ii)), 2))*ii/c ))
 #yb = sat.width*np.arctan((2*sat.height-jj)/ii)
-
+#
 #r = c*np.tan((sat.height-ii/(2*np.pi))*np.pi/sat.height)
 #theta = 2*np.pi*jj/(sat.width)
 #
 #xb = center_x + (r * np.cos(theta)).astype(int)
 #yb = center_y + (r * np.sin(theta)).astype(int)
 
-#xb = r*np.cos(theta/2)
-#yb = -r*np.sin(theta/2)
+#xb = r*np.cos(theta)
+#yb = -r*np.sin(theta)
 
 #test = sample_bilinear(pano_arr, xb, yb)
-#
-#Image.fromarray(np.uint8(test)).save('test.png')
+
+#Image.fromarray(np.uint8(test)).save('test_new.png')
 #Image.fromarray(np.uint8(pano_arr)).save('test_pp.png')
 #Image.fromarray(np.uint8(sat_arr)).save('test_ss.png')
-#
+
 #print(f'xp: {xp.shape}\nyp: {yp.shape}\nr: {r.shape}\ntheta: {theta.shape}\nxb: {xb.shape}\nyb: {yb.shape}\nii: {ii.shape}\njj: {jj.shape}')
+######################################################################333
+#from PIL import Image, ImageDraw
 #
-# print(pano.size) (width, height)
-#height = sat.size[0]   # Height of polar transformed aerial image
-#width = sat.size[1]    # Width of polar transformed aerial image
-#c = 100 
-
-#i = np.arange(0, height)
-#j = np.arange(0, width)
-#jj, ii = np.meshgrid(j, i)
-
-#y = (width*np.arctan((height-ii)/jj))/(2*np.pi)
-#x = height*(1-(np.arctan(np.sqrt(1+np.power((height-ii)/jj, 2))*jj/c))/np.pi)
-
-#y = S/2. - S/2./height*(height-1-ii)*np.sin(2*np.pi*jj/width)
-#x = S/2. + S/2./height*(height-1-ii)*np.cos(2*np.pi*jj/width)
-
-#print(f'jj\n{jj}\n{jj.shape}\nii\n{ii}\n{ii.shape}')
-#print(f'x\n{x}\n{x.shape}\ny\n{y}\n{y.shape}')
-
-#test = sample_bilinear(pano_arr, x, y)
-#Image.fromarray(np.uint8(test)).save('test.png')
-#Image.fromarray(np.uint8(pano_arr)).save('test_pp.png')
-#Image.fromarray(np.uint8(sat_arr)).save('test_ss.png')
-
-######################################
-#import numpy as np
+#def bend_image_around_circle(image_path, circle_radius):
+#    # Load the image
+#    original_image = Image.open(image_path)
+#    original_image = ImageOps.flip(original_image)
 #
-#c_street = [0]
-#c_building = [100,150,200,250,300,350,400,450,500,550]
+#    # Calculate the diameter of the circle
+#    circle_diameter = circle_radius * 2
 #
-#for c1 in c_street:
-#    for c2 in c_building:
-#        # Assume H, W, c are defined as the height, width, and a constant respectively.
-#        H, W, c = sat.height, sat.width, 50  # example values
+#    # Create a blank image for the output
+#    output_image = Image.new("RGBA", (circle_diameter, circle_diameter), (0, 0, 0, 0))
 #
-#        boundary = H // 2
-#        # Assume we have a panoramic image 'pano_img' of shape (H, W)
-#        # We need to create a blank bird's-eye view image 'bird_eye_img'
-#        bird_eye_img = np.zeros_like(sat_arr)
-#        center_x, center_y = W // 2, H // 2
-#        print('ln', '*'*8, bird_eye_img.shape, pano_arr. shape)
-#        # Loop over each pixel in the panoramic image.
-#        for xp in range(H):
-#            for yp in range(W):
-#                if xp < boundary:
-#                    c = c1
-#                else: c = c2
-#                # Apply the transformations.
-#                r_co = c * np.tan((H - xp) * np.pi / H)
-#                theta = 2 * np.pi * yp / W
-#                # Calculate the corresponding pixels in bird's-eye view image
-#                xb = center_x + int(r_co * np.cos(theta))
-#                yb = center_y + int(r_co * np.sin(theta))
-#                # Check if the calculated indices are within the image dimensions.
-#                if 0 <= xb < W and 0 <= yb < H:
-#                    bird_eye_img[yb, xb] = pano_arr[xp, yp]
+#    # Create a drawing object
+#    draw = ImageDraw.Draw(output_image)
 #
-#        Image.fromarray(np.uint8(bird_eye_img)).save(f'st_{c1}_buil_{c2}_test.png')
-#Image.fromarray(np.uint8(pano_arr)).save('test_pp.png')
-#Image.fromarray(np.uint8(sat_arr)).save('test_ss.png')
-
-from PIL import Image, ImageDraw
-
-def bend_image_around_circle(image_path, circle_radius):
-    # Load the image
-    original_image = Image.open(image_path)
-    original_image = ImageOps.flip(original_image)
-
-    # Calculate the diameter of the circle
-    circle_diameter = circle_radius * 2
-
-    # Create a blank image for the output
-    output_image = Image.new("RGBA", (circle_diameter, circle_diameter), (0, 0, 0, 0))
-
-    # Create a drawing object
-    draw = ImageDraw.Draw(output_image)
-
-    # Iterate over each pixel in the output image
-    c = 100
-    H = sat.height
-    W = sat.width
-
-    for x in range(circle_diameter):
-        for y in range(circle_diameter):
-            # Calculate the relative position within the circle
-            rel_x = x - circle_radius
-            rel_y = y - circle_radius
-
-            # Calculate the polar coordinates
-            #r = c * math.tan((1000-rel_x)*math.pi/1000)
-            #theta = 2*math.pi*rel_y/500
-            r = math.sqrt(rel_x ** 2 + rel_y ** 2)
-            theta = math.atan2(rel_y, rel_x)
-
-            # Calculate the normalized coordinates within the original image
-            norm_x = (theta / (2 * math.pi)) + 0.5
-            norm_y = (r / circle_radius)
-
-            # Map the normalized coordinates to the range of the original image
-            source_x = int(norm_x * original_image.width)
-            source_y = int(norm_y * original_image.height)
-
-            # Check if the source coordinates are within the boundaries of the original image
-            if 0 <= source_x < original_image.width and 0 <= source_y < original_image.height:
-                # Get the pixel color from the original image
-                pixel = original_image.getpixel((source_x, source_y))
-            else:
-                # Use a transparent pixel if the source coordinates are outside the original image boundaries
-                pixel = (0, 0, 0, 0)
-
-            # Draw the pixel in the output image
-            draw.point((x, y), fill=pixel)
-
-    output_image.save('test.png')
-
-# Example usage
-image_path = "/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/rTW64elYRVtD5DWJ9kBgnA,40.731011,-73.995289,.jpg"
-circle_radius = 500
-bend_image_around_circle(image_path, circle_radius)
-
-from PIL import Image
-import numpy as np
-
-def custom_distortion_mapping(x, y, width, height, inner_strength, outer_strength):
-    cx = width / 2
-    cy = height / 2
-    
-    # Calculate distance from the center
-    dx = x - cx
-    dy = y - cy
-    distance = np.sqrt(dx*dx + dy*dy)
-    
-    # Calculate scaling factor based on distance from the center
-    scaling_factor = 1.0 + ((distance / cx) * outer_strength)
-    
-    # Apply perspective transformation on the inner part
-    if distance < cx:
-        scaling_factor = 1.0 - ((distance / cx) * inner_strength)
-    
-    # Calculate new coordinates
-    new_x = cx + dx * scaling_factor
-    new_y = cy + dy * scaling_factor
-    
-    return int(new_x), int(new_y)
-
-def apply_custom_distortion(image, inner_strength, outer_strength):
-    width, height = image.size
-    distorted_image = Image.new("RGB", (width, height))
-    
-    for y in range(height):
-        for x in range(width):
-            src_x, src_y = custom_distortion_mapping(x, y, width, height, inner_strength, outer_strength)
-            if 0 <= src_x < width and 0 <= src_y < height:
-                pixel_value = image.getpixel((src_x, src_y))
-                distorted_image.putpixel((x, y), pixel_value)
-    
-    return distorted_image
-
-# Load the fish eye image
-fisheye_image = Image.open("test.png")
-
-# Set the distortion strengths (experiment with different values)
-inner_distortion_strength = 0.5
-outer_distortion_strength = 0.5
-
-# Apply the custom distortion
-distorted_image = apply_custom_distortion(fisheye_image, inner_distortion_strength, outer_distortion_strength)
-
-# Save the distorted image
-distorted_image.save("test2.png")
+#    # Iterate over each pixel in the output image
+#    c = 100
+#    H = sat.height
+#    W = sat.width
+#
+#    for x in range(circle_diameter):
+#        for y in range(circle_diameter):
+#            # Calculate the relative position within the circle
+#            rel_x = x - circle_radius
+#            rel_y = y - circle_radius
+#
+#            # Calculate the polar coordinates
+#            #r = c * math.tan((1000-rel_x)*math.pi/1000)
+#            #theta = 2*math.pi*rel_y/500
+#            r = math.sqrt(rel_x ** 2 + rel_y ** 2)
+#            theta = math.atan2(rel_y, rel_x)
+#
+#            # Calculate the normalized coordinates within the original image
+#            norm_x = (theta / (2 * math.pi)) + 0.5
+#            norm_y = (r / circle_radius)
+#
+#            # Map the normalized coordinates to the range of the original image
+#            source_x = int(norm_x * original_image.width)
+#            source_y = int(norm_y * original_image.height)
+#
+#            # Check if the source coordinates are within the boundaries of the original image
+#            if 0 <= source_x < original_image.width and 0 <= source_y < original_image.height:
+#                # Get the pixel color from the original image
+#                pixel = original_image.getpixel((source_x, source_y))
+#            else:
+#                # Use a transparent pixel if the source coordinates are outside the original image boundaries
+#                pixel = (0, 0, 0, 0)
+#
+#            # Draw the pixel in the output image
+#            draw.point((x, y), fill=pixel)
+#
+#    output_image.save('test.png')
+#
+## Example usage
+#image_path = "/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/rTW64elYRVtD5DWJ9kBgnA,40.731011,-73.995289,.jpg"
+#circle_radius = 500
+#bend_image_around_circle(image_path, circle_radius)
+#
+#def custom_distortion_mapping(x, y, width, height, inner_strength, outer_strength):
+#    cx = width / 2
+#    cy = height / 2
+#    
+#    # Calculate distance from the center
+#    dx = x - cx
+#    dy = y - cy
+#    distance = np.sqrt(dx*dx + dy*dy)
+#    
+#    # Calculate scaling factor based on distance from the center
+#    scaling_factor = 1.0 + ((distance / cx) * outer_strength)
+#    
+#    # Apply perspective transformation on the inner part
+#    if distance < cx:
+#        scaling_factor = 1.0 - ((distance / cx) * inner_strength)
+#    
+#    # Calculate new coordinates
+#    new_x = cx + dx * scaling_factor
+#    new_y = cy + dy * scaling_factor
+#    
+#    return int(new_x), int(new_y)
+#
+#def apply_custom_distortion(image, inner_strength, outer_strength):
+#    width, height = image.size
+#    distorted_image = Image.new("RGB", (width, height))
+#    
+#    for y in range(height):
+#        for x in range(width):
+#            src_x, src_y = custom_distortion_mapping(x, y, width, height, inner_strength, outer_strength)
+#            if 0 <= src_x < width and 0 <= src_y < height:
+#                pixel_value = image.getpixel((src_x, src_y))
+#                distorted_image.putpixel((x, y), pixel_value)
+#    
+#    return distorted_image
+#
+## Load the fish eye image
+#fisheye_image = Image.open("test.png")
+#
+## Set the distortion strengths (experiment with different values)
+#inner_distortion_strength = 0.5
+#outer_distortion_strength = 0.5
+#
+## Apply the custom distortion
+#distorted_image = apply_custom_distortion(fisheye_image, inner_distortion_strength, outer_distortion_strength)
+#
+## Save the distorted image
+#distorted_image.save("test2.png")
 
 
 
