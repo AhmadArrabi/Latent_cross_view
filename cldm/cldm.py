@@ -19,8 +19,14 @@ from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 from CVUSA_dataset import TARGET_SIZE, W_TARGET, H_TARGET
 
-
+###############################################################################
 class ControlledUnetModel(UNetModel):
+    """
+    This class is like a maestro, it organizes and uses the controlNet class
+    so it is assumed that all results from the forward method in controlnet are
+    available before hand and this code design is responsible for connecting the
+    Unet
+    """
     def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
         hs = []
         with torch.no_grad():
@@ -45,7 +51,7 @@ class ControlledUnetModel(UNetModel):
             
         h = h.type(x.dtype)
         return self.out(h)
-
+###############################################################################
 #TODO your own controlNET
 class ControlNet(nn.Module):
     def __init__(
@@ -311,7 +317,7 @@ class ControlNet(nn.Module):
 
         return outs
 
-
+###############################################################################
 class ControlLDM(LatentDiffusion):
 
     def __init__(self, control_stage_config, control_key, only_mid_control, *args, **kwargs):
@@ -325,26 +331,33 @@ class ControlLDM(LatentDiffusion):
     def get_input(self, batch, k, bs=None, *args, **kwargs):
         # TODO
         # DETERMINE HOW THE SEQUENCE OF GROUND IMAGES ARE PROCESSED 
-        x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs)
-        control = batch[self.control_key]
+        # latent z 'jpg' , CLIP embedding of 'txt' = LDM.get_input()
+        x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs) 
+        control = batch[self.control_key] #hint (seq of gnd imgs)
         if bs is not None:
             control = control[:bs]
         control = control.to(self.device)
-        control = einops.rearrange(control, 'b h w c -> b c h w')
+        control = einops.rearrange(control, 'b h w c -> b c h w') #needs modification
         control = control.to(memory_format=torch.contiguous_format).float()
         return x, dict(c_crossattn=[c], c_concat=[control])
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
+        """
+        cond is expected to be a dict:
+        cond = {'c_crossattn': [tensor from embedding 'txt'],
+                'c_concat': [seq of gnd images]}
+        """
         assert isinstance(cond, dict)
-        diffusion_model = self.model.diffusion_model
+        diffusion_model = self.model.diffusion_model #controlledunetmodule
 
-        cond_txt = torch.cat(cond['c_crossattn'], 1)
+        cond_txt = torch.cat(cond['c_crossattn'], 1) 
 
         if cond['c_concat'] is None:
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control)
         else:
+            #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
-            control = [c * scale for c, scale in zip(control, self.control_scales)]
+            control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
 
         return eps
@@ -442,3 +455,4 @@ class ControlLDM(LatentDiffusion):
             self.control_model = self.control_model.cpu()
             self.first_stage_model = self.first_stage_model.cuda()
             self.cond_stage_model = self.cond_stage_model.cuda()
+###############################################################################

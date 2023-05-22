@@ -148,6 +148,8 @@ class VIGOR(torch.utils.data.Dataset):
             #       e.g., batch.gnd.shape = [4, 42, width, height] 4 samples each has 12 ground images
             #       batch.sat.shape = [4, 3, width, height], 4 samples each has a sat image
             ground_imgs = torch.cat(ground_image_list, dim=0)
+            ground_imgs = ground_imgs.reshape(shape=(14, 3, ground_imgs.shape[1], ground_imgs.shape[2]))
+            
             ground_deltas = torch.tensor(ground_delta_list)
             
             return dict(jpg=aerial_image, 
@@ -265,7 +267,7 @@ if __name__ == "__main__":
         #num_channel = i['hint'].shape[1]
         #num_images = int(num_channel) // 3
         #grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
-        #torchvision.utils.save_image(grd_images, "grd.png")
+        #torchvision.utils.save_image(i['hint'][0], f"grd{idx}.png")
         print(idx, "#"*30)
         print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
                '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])

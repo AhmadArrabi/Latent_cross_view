@@ -519,7 +519,7 @@ class DDPM(pl.LightningModule):
         opt = torch.optim.AdamW(params, lr=lr)
         return opt
 
-
+#########################################################################3
 class LatentDiffusion(DDPM):
     """main class"""
 
@@ -776,9 +776,9 @@ class LatentDiffusion(DDPM):
         if self.model.conditioning_key is not None and not self.force_null_conditioning:
             if cond_key is None:
                 cond_key = self.cond_stage_key
-            if cond_key != self.first_stage_key:
+            if cond_key != self.first_stage_key: #'txt' != 'jpg'
                 if cond_key in ['caption', 'coordinates_bbox', "txt"]:
-                    xc = batch[cond_key]
+                    xc = batch[cond_key] #xc <- 'high resolution image ...'
                 elif cond_key in ['class_label', 'cls']:
                     xc = batch
                 else:
@@ -1308,7 +1308,7 @@ class LatentDiffusion(DDPM):
         x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
         return x
 
-
+#######################################################################
 class DiffusionWrapper(pl.LightningModule):
     def __init__(self, diff_model_config, conditioning_key):
         super().__init__()

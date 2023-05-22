@@ -45,8 +45,8 @@ pano = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/rTW64elYRVtD5D
 sat = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/satellite/satellite_40.7309416656_-73.9953203614.png')
 sat = sat.convert('RGB')
 
-cropped_pano = pano.crop((0, int(pano.size[1]*0.5), pano.size[0], pano.size[1]))
-flipped_pano = ImageOps.flip(pano)
+cropped_pano = pano.crop((0, int(pano.size[1]*0.3), pano.size[0], pano.size[1]))
+flipped_pano = ImageOps.flip(cropped_pano)
 flip = True
 
 if flip:
@@ -55,15 +55,17 @@ else:
     pano_arr = np.array(pano)
 sat_arr = np.array(sat)
 ######################################################################################################
-height = pano.height  # Height of polar transformed aerial image
-width = pano.width    # Width of polar transformed aerial image
+height = cropped_pano.height  # Height of polar transformed aerial image
+width = cropped_pano.width    # Width of polar transformed aerial image
 
 i = np.arange(0, width)
 j = np.arange(0, height)
 ii, jj = np.meshgrid(i, j)
 
 y = ii
-x = np.log1p(jj*0.025)
+# smaller c_scale means more round street
+c_scale = 0.1 
+x = np.log1p(jj*c_scale)
 x = (jj.max()-jj.min())*(x-x.min())/(x.max()-x.min()) + jj.min() 
 
 test = sample_bilinear(pano_arr, x, y)
