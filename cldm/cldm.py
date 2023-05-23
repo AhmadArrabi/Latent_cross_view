@@ -53,6 +53,19 @@ class ControlledUnetModel(UNetModel):
         return self.out(h)
 ###############################################################################
 #TODO your own controlNET
+class ControlSeq(nn.Module):
+    def __init__():
+        super.__init__()
+        pass
+
+    def forward():
+        pass
+
+    def get_input():
+        pass
+
+
+##############################################################################
 class ControlNet(nn.Module):
     def __init__(
             self,
@@ -320,12 +333,13 @@ class ControlNet(nn.Module):
 ###############################################################################
 class ControlLDM(LatentDiffusion):
 
-    def __init__(self, control_stage_config, control_key, only_mid_control, *args, **kwargs):
+    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
         self.only_mid_control = only_mid_control
         self.control_scales = [1.0] * 13
+        self.control_seq = control_seq
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
@@ -337,8 +351,11 @@ class ControlLDM(LatentDiffusion):
         if bs is not None:
             control = control[:bs]
         control = control.to(self.device)
-        control = einops.rearrange(control, 'b h w c -> b c h w') #needs modification
+
+        if not self.control_seq:
+            control = einops.rearrange(control, 'b h w c -> b c h w') 
         control = control.to(memory_format=torch.contiguous_format).float()
+       
         return x, dict(c_crossattn=[c], c_concat=[control])
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):

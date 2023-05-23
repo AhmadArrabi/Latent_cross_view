@@ -47,7 +47,7 @@ sat = sat.convert('RGB')
 
 cropped_pano = pano.crop((0, int(pano.size[1]*0.3), pano.size[0], pano.size[1]))
 flipped_pano = ImageOps.flip(cropped_pano)
-flip = True
+flip = False
 
 if flip:
     pano_arr = np.array(flipped_pano)
@@ -115,7 +115,7 @@ img = np.concatenate((img,img2,img3), axis=-1)
 
 
 #Image.fromarray(np.uint8(out)).save('test_scipy_.png')
-Image.fromarray(np.uint8(img)).save('test_scipy_polar.png')
+#Image.fromarray(np.uint8(img)).save('test_scipy_polar.png')
 
 ############################ Polar Transform #############################
 #S = sat.size[0]  # Original size of the aerial image

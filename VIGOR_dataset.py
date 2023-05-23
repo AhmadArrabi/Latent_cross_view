@@ -98,7 +98,7 @@ class VIGOR(torch.utils.data.Dataset):
                 for k in city_dict.keys():
                     # TODO: MODIFY THE JASON FILE IN GPFS3, ADD FILE PATH, E.G., NEWYORK/SATELLITE/IMG.PNG INSTEAD OF IMG.PNG
                     self.train_list.append(k)
-                self.train_dict = self.train_dict | city_dict # aggregate dictionaries
+                self.train_dict = {**self.train_dict, **city_dict} #self.train_dict | city_dict # aggregate dictionaries
         
         self.test_dict = {}
         self.test_list = []
@@ -108,7 +108,7 @@ class VIGOR(torch.utils.data.Dataset):
                 city_dict = json.load(j)
                 for k in city_dict.keys():
                     self.test_list.append(k)
-                self.test_dict = self.test_dict | city_dict
+                self.test_dict = {**self.test_dict, **city_dict}#self.test_dict | city_dict
 
     def __getitem__(self, index, debug=False):
         # TODO
