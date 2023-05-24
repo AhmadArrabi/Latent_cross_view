@@ -2,6 +2,7 @@ import einops
 import torch
 import torch as th
 import torch.nn as nn
+import torchvision.models as models
 
 from ldm.modules.diffusionmodules.util import (
     conv_nd,
@@ -52,10 +53,33 @@ class ControlledUnetModel(UNetModel):
         h = h.type(x.dtype)
         return self.out(h)
 ###############################################################################
-#TODO your own controlNET
+class ResNet18(nn.Module):
+    """
+    ref: https://gitlab.com/vail-uvm/geodtr
+    """
+    def __init__(self):
+        super().__init__()
+        net = models.resnet18(pretrained = True)
+        layers = list(net.children())[:3]
+        layers_end = list(net.children())[4:-2]
+        self.layers = nn.Sequential(*layers, *layers_end)
+    def forward(self, x):
+        return self.layers(x)
+    
 class ControlSeq(nn.Module):
-    def __init__():
+    def __init__(
+            self,
+            seq_len,
+            seq_pos,
+        ):
         super.__init__()
+
+        self.backbone = ResNet18()
+        
+
+        pass
+
+    def log_polar_transform():
         pass
 
     def forward():
@@ -333,18 +357,27 @@ class ControlNet(nn.Module):
 ###############################################################################
 class ControlLDM(LatentDiffusion):
 
-    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, *args, **kwargs):
+    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, control_seq_length, control_seq_position, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
         self.only_mid_control = only_mid_control
         self.control_scales = [1.0] * 13
         self.control_seq = control_seq
+        self.control_seq_length = control_seq_length
+        self.control_seq_position = control_seq_position
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
-        # TODO
-        # DETERMINE HOW THE SEQUENCE OF GROUND IMAGES ARE PROCESSED 
+        """
+        returns the latent space representation along with a dictionary of the control input
+        In case of sequence (control_seq was True), the dict is as follows:
+            {'c_crossattn': [txt embedding tensor],
+             'c_concat': [control images],
+             'c_seq_len': [number of images in the sequence]
+             'c_seq_pos': [relative coordinates of each image in the sequence] (x,y position from the center of the aerial image)}
+        if control_seq was false, only crossattn and concat are present in the dictionary
+        """
         # latent z 'jpg' , CLIP embedding of 'txt' = LDM.get_input()
         x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs) 
         control = batch[self.control_key] #hint (seq of gnd imgs)
@@ -353,10 +386,21 @@ class ControlLDM(LatentDiffusion):
         control = control.to(self.device)
 
         if not self.control_seq:
-            control = einops.rearrange(control, 'b h w c -> b c h w') 
+            control = einops.rearrange(control, 'b h w c -> b c h w')
+        else:
+            seq_length = batch[self.control_seq_length]
+            seq_position = batch[self.control_seq_position]
+            if bs is not None:
+                seq_length = seq_length[:bs]
+                seq_position = seq_position[:bs]
+            seq_length = seq_length.to(self.device)
+            seq_position = seq_position.to(self.device)
+            seq_length = seq_length.to(memory_format=torch.contiguous_format).float()
+            seq_position = seq_position.to(memory_format=torch.contiguous_format).float()
+            
         control = control.to(memory_format=torch.contiguous_format).float()
        
-        return x, dict(c_crossattn=[c], c_concat=[control])
+        return x, dict(c_crossattn=[c], c_concat=[control], c_seq_len=[seq_length], c_seq_pos=[seq_position])
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         """
@@ -375,6 +419,7 @@ class ControlLDM(LatentDiffusion):
             #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
+            #print('\n'*100,'\n',len(control), control[0].shape, '\n'*100,'\n', control)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
 
         return eps

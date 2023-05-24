@@ -39,7 +39,7 @@ def input_transform_fov(size, fov):
 def input_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
-            #transforms.Resize(size=tuple(size)),
+            transforms.Resize(size=tuple(size)),
             #transforms.ColorJitter(0.3, 0.3, 0.3),
             #transforms.RandomGrayscale(p=0.2),
             #transforms.RandomPosterize(p=0.2, bits=4),
@@ -71,9 +71,9 @@ class VIGOR(torch.utils.data.Dataset):
             raise RuntimeError(f'{self.mode} is not implemented!')
         
         # The below size is temporary should check later
-        self.sat_size = [320, 320]
+        self.sat_size = [512, 512]#[320, 320]
         self.sat_size_default = [320, 320]
-        self.grd_size = [128, 512]
+        self.grd_size = [1024, 2048]#[128, 512]
 
         # transforms notice strong aug is added
         self.transform_ground = input_transform(size=self.grd_size, mode=self.mode)

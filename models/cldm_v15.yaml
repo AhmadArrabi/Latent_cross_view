@@ -6,10 +6,12 @@ model:
     num_timesteps_cond: 1
     log_every_t: 200
     timesteps: 1000
-    first_stage_key: "jpg"
-    cond_stage_key: "txt"
-    control_key: "hint"
-    control_seq: False
+    first_stage_key: jpg
+    cond_stage_key: txt
+    control_key: hint
+    control_seq: True
+    control_seq_length: len
+    control_seq_position: delta
     image_size: 64
     channels: 4
     cond_stage_trainable: false
