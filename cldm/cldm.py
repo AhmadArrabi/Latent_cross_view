@@ -55,40 +55,83 @@ class ControlledUnetModel(UNetModel):
 ###############################################################################
 class ResNet18(nn.Module):
     """
-    ref: https://gitlab.com/vail-uvm/geodtr
+    thanks: https://gitlab.com/vail-uvm/geodtr
     """
-    def __init__(self):
+    def __init__(self, model_channels):
         super().__init__()
         net = models.resnet18(pretrained = True)
-        layers = list(net.children())[:3]
-        layers_end = list(net.children())[4:-2]
-        self.layers = nn.Sequential(*layers, *layers_end)
+        
+        layers_in = list(net.children())[:3]    #remove pooling layer
+        layers_out = list(net.children())[4:-2] #remove classifiers
+        
+        #add last conv layer so the channel width matches SD
+        layers_conv = [nn.Sequential(nn.ReLU(inplace=True), 
+                                    nn.Conv2d(layers_out[-1][-1].conv2.in_channels, model_channels, kernel_size=3, padding=1),
+                                    nn.BatchNorm2d(model_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True))] 
+        
+        self.layers = nn.Sequential(*layers_in, *layers_out, *layers_conv)
+
     def forward(self, x):
         return self.layers(x)
     
 class ControlSeq(nn.Module):
     def __init__(
             self,
-            seq_len,
-            seq_pos,
+            latent_size,
+            transformation,
+            seq_padding, #14
+            latent_ratio,
+            model_channels,
+            dims=2            
         ):
         super.__init__()
 
-        self.backbone = ResNet18()
+        self.dims = dims #conv2D
+        self.model_channels = model_channels
+        self.seq_padding = seq_padding
+        self.latent_size = latent_size
+        self.latent_ratio = latent_ratio #size of latent vector of seq after polar trans
+        self.backbone_base = ResNet18(model_channels) # do we need timestepembedding for some reason?
+        self.backbone_block = nn.ModuleList()
+        self.zero_convs = nn.ModuleList()
+
+        for i in range(seq_padding):
+            self.backbone_block.append(self.backbone_base)
+            
+        self.transformation = transformation
+
+        for i in range(13): #to be changed when determing how to influence the unet
+            self.zero_convs.append(self.make_zero_conv(model_channels))
         
-
-        pass
-
     def log_polar_transform():
         pass
 
-    def forward():
-        pass
+    def make_zero_conv(self, channels):
+        return zero_module(conv_nd(self.dims, channels, channels, 1, padding=0))
+    
+    def geo_mapping(self, seq_latent, feature_map, seq_len, seq_pos):
+        for batch in range(seq_latent.shape[0]):
+            for i in range(seq_len):
+                small_tensor = seq_latent[batch,i,] #select one image from the sequence at a time
+                # Place the smaller tensor at the specified position in the larger tensor
+                #TODO: - apply clamping for index out of range
+                #      - transform the coordinates from center 0,0 to top corner or vice versa
+                feature_map[seq_pos[batch,i,0]:seq_pos[batch,i,0]+small_tensor.shape[3],
+                            seq_pos[batch,i,1]:seq_pos[batch,i,1]+small_tensor.shape[2]] = small_tensor
 
-    def get_input():
-        pass
+        return feature_map
 
+    def forward(self, hint, seq_len, seq_pos):
+        seq_latent = torch.tensor([backbone(hint[:,seq,]) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)])
+        
+        #apply transformation
+        #seq_latent.log_polar_transform
 
+        seq_latent[seq_len:].zero_()
+        feature_map = torch.zeros(seq_latent.shape[0], self.latent_size)
+    
+        #match out tensors with self.feature map
+        #extend to how you'll influence the Unet
 ##############################################################################
 class ControlNet(nn.Module):
     def __init__(
