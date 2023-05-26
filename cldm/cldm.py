@@ -3,6 +3,7 @@ import torch
 import torch as th
 import torch.nn as nn
 import torchvision.models as models
+import kornia
 
 from ldm.modules.diffusionmodules.util import (
     conv_nd,
@@ -20,7 +21,7 @@ from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 from CVUSA_dataset import TARGET_SIZE, W_TARGET, H_TARGET
 
-###############################################################################
+######################################################################################
 class ControlledUnetModel(UNetModel):
     """
     This class is like a maestro, it organizes and uses the controlNet class
@@ -52,7 +53,7 @@ class ControlledUnetModel(UNetModel):
             
         h = h.type(x.dtype)
         return self.out(h)
-###############################################################################
+#########################################################################################
 class ResNet18(nn.Module):
     """
     thanks: https://gitlab.com/vail-uvm/geodtr
@@ -109,30 +110,53 @@ class ControlSeq(nn.Module):
     def make_zero_conv(self, channels):
         return zero_module(conv_nd(self.dims, channels, channels, 1, padding=0))
     
-    def geo_mapping(self, seq_latent, feature_map, seq_len, seq_pos):
-        for batch in range(seq_latent.shape[0]):
-            for i in range(seq_len):
-                small_tensor = seq_latent[batch,i,] #select one image from the sequence at a time
-                # Place the smaller tensor at the specified position in the larger tensor
-                #TODO: - apply clamping for index out of range
-                #      - transform the coordinates from center 0,0 to top corner or vice versa
-                feature_map[seq_pos[batch,i,0]:seq_pos[batch,i,0]+small_tensor.shape[3],
-                            seq_pos[batch,i,1]:seq_pos[batch,i,1]+small_tensor.shape[2]] = small_tensor
+    def geo_mapping(self, hint_latent, seq_pos):
+        desired_height = self.latent_size.shape[2]
+        desired_width = self.latent_size.shape[3]
+
+        vertical_pad = (desired_height - hint_latent.shape[3])//2
+        horizontal_pad = (desired_width - hint_latent.shape[4])//2
+
+        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad))
+        
+        # take care of ratio these shifts are in the pix domain
+        x_shift = (seq_pos[:,:,0]*0.125).round()
+        y_shift = (seq_pos[:,:,1]*-0.125).round()
+        
+        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #seq
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1) #batch
+
+        affine_matrix[:,:,0,-1] = x_shift
+        affine_matrix[:,:,1,-1] = y_shift
+        
+        hint_shifted = hint_padded
+        for seq in range(self.seq_padding):
+            hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
+
+        mask = hint_shifted < 1e-06 #should be zero
+        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros
+    
+    def forward(self, cond):
+        hint = cond['c_concat']
+        seq_len = cond['c_seq_len']
+        seq_pos = cond['c_seq_pos']
+
+        hint_latent = torch.tensor([backbone(hint[:,seq,]) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)], requires_grad=True)
+        #apply transformation (if it works on the batch level, if not just apply it to the loop)
+
+        for sample in range(hint.shape[0]):
+            hint_latent[sample, seq_len:].zero_()
+
+        feature_map = self.geo_mapping(hint_latent, seq_pos)
+        resized_feature_map = torch.nn.functional.interpolate(
+            feature_map,
+            size=(self.latent_size.shape[2],
+                  self.latent_size.shape[3]),
+            mode="bilinear")
 
         return feature_map
-
-    def forward(self, hint, seq_len, seq_pos):
-        seq_latent = torch.tensor([backbone(hint[:,seq,]) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)])
-        
-        #apply transformation
-        #seq_latent.log_polar_transform
-
-        seq_latent[seq_len:].zero_()
-        feature_map = torch.zeros(seq_latent.shape[0], self.latent_size)
-    
-        #match out tensors with self.feature map
-        #extend to how you'll influence the Unet
-##############################################################################
+##############################################################################################
 class ControlNet(nn.Module):
     def __init__(
             self,
@@ -397,7 +421,7 @@ class ControlNet(nn.Module):
 
         return outs
 
-###############################################################################
+############################################################################################################
 class ControlLDM(LatentDiffusion):
 
     def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, control_seq_length, control_seq_position, *args, **kwargs):
@@ -461,6 +485,7 @@ class ControlLDM(LatentDiffusion):
         else:
             #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
+            # make control a list or something
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
             #print('\n'*100,'\n',len(control), control[0].shape, '\n'*100,'\n', control)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)

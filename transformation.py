@@ -45,6 +45,52 @@ pano = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/panorama/rTW64elYRVtD5D
 sat = Image.open('/gpfs3/scratch/xzhang31/VIGOR/NewYork/satellite/satellite_40.7309416656_-73.9953203614.png')
 sat = sat.convert('RGB')
 
+
+import torch
+import kornia
+import torchvision.transforms as transforms
+
+transform = transforms.Compose([transforms.Resize((64,128)) ,transforms.ToTensor()])
+feature_map = torch.zeros(3, 1000, 1000)
+x = transform(pano)
+
+x = torch.ones(2, 3, 2, 2)
+# Define the desired size of the padded tensor
+desired_height = 6  # Adjust as per your desired size
+desired_width = 6  # Adjust as per your desired size
+# Calculate the required padding
+vertical_pad = (desired_height-x.shape[2])//2
+horizontal_pad = (desired_width-x.shape[3])//2
+# Pad the tensor while keeping the image centered
+padded_image = torch.nn.functional.pad(x, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad))
+#padded_image.shape
+# Define the shift parameters
+shift_x = -2 # Adjust as per your desired shift amount along the x-axis
+shift_y = 2   # Adjust as per your desired shift amount along the y-axis
+# Generate the affine transformation matrix for shifting
+affine_matrix = torch.tensor([[1, 0, shift_x], [0, 1, shift_y]], dtype=padded_image.dtype)
+affine_matrix = affine_matrix.unsqueeze(0).repeat(x.shape[0],1,1)
+affine_matrix[1]
+# Apply the affine transformation to shift the image
+shifted_image =  kornia.geometry.transform.warp_affine(padded_image, affine_matrix, dsize=(6,6))
+# Print the result
+print(shifted_image.squeeze().shape)
+
+shifted_image = padded_image
+for seq in range(3):
+    shifted_image[:,seq,] =  kornia.geometry.transform.warp_affine(padded_image[:,seq,], affine_matrix[:,seq,], dsize=(6,6))
+
+((t*mask).sum(dim=0)/mask.sum(dim=0)).shape
+
+
+
+
+
+
+
+
+
+"""
 cropped_pano = pano.crop((0, int(pano.size[1]*0.3), pano.size[0], pano.size[1]))
 flipped_pano = ImageOps.flip(cropped_pano)
 flip = False
@@ -113,7 +159,7 @@ img3 = np.expand_dims(polar_linear(test[:,:,2], output=(2000,2000)), axis=-1)
 img = np.concatenate((img,img2,img3), axis=-1)
 #img = polar_linear(np.array(ImageOps.flip(Image.fromarray(np.uint8(test))))[:,:,1], output=(2500,2500))
 
-
+"""
 #Image.fromarray(np.uint8(out)).save('test_scipy_.png')
 #Image.fromarray(np.uint8(img)).save('test_scipy_polar.png')
 
