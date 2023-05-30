@@ -61,15 +61,13 @@ class ResNet18(nn.Module):
     def __init__(self, model_channels):
         super().__init__()
         net = models.resnet18(pretrained = True)
-        
+
         layers_in = list(net.children())[:3]    #remove pooling layer
         layers_out = list(net.children())[4:-2] #remove classifiers
-        
+
         #add last conv layer so the channel width matches SD
-        layers_conv = [nn.Sequential(nn.ReLU(inplace=True), 
-                                    nn.Conv2d(layers_out[-1][-1].conv2.in_channels, model_channels, kernel_size=3, padding=1),
+        layers_conv = [nn.Sequential(nn.Conv2d(layers_out[-1][-1].conv2.in_channels, model_channels, kernel_size=3, padding=1),
                                     nn.BatchNorm2d(model_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True))] 
-        
         self.layers = nn.Sequential(*layers_in, *layers_out, *layers_conv)
 
     def forward(self, x):
@@ -83,13 +81,15 @@ class ControlSeq(nn.Module):
             seq_padding, #14
             latent_ratio,
             model_channels,
-            dims=2            
+            dims=2,
+            device='cuda'            
         ):
-        super.__init__()
+        super().__init__()
 
         self.dims = dims #conv2D
         self.model_channels = model_channels
         self.seq_padding = seq_padding
+        self.device = device
         self.latent_size = latent_size
         self.latent_ratio = latent_ratio #size of latent vector of seq after polar trans
         self.backbone_base = ResNet18(model_channels) # do we need timestepembedding for some reason?
@@ -101,36 +101,35 @@ class ControlSeq(nn.Module):
             
         self.transformation = transformation
 
-        for i in range(13): #to be changed when determing how to influence the unet
+        for _ in range(13): #to be changed when determing how to influence the unet
             self.zero_convs.append(self.make_zero_conv(model_channels))
-        
-    def log_polar_transform():
+    def log_polar_transform(self, x:str):
         pass
 
     def make_zero_conv(self, channels):
         return zero_module(conv_nd(self.dims, channels, channels, 1, padding=0))
     
     def geo_mapping(self, hint_latent, seq_pos):
-        desired_height = self.latent_size.shape[2]
-        desired_width = self.latent_size.shape[3]
+        desired_height = self.latent_size[2]
+        desired_width = self.latent_size[3]
 
         vertical_pad = (desired_height - hint_latent.shape[3])//2
         horizontal_pad = (desired_width - hint_latent.shape[4])//2
 
-        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad))
+        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
         
         # take care of ratio these shifts are in the pix domain
         x_shift = (seq_pos[:,:,0]*0.125).round()
         y_shift = (seq_pos[:,:,1]*-0.125).round()
         
-        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
+        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype).detach()
         affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #seq
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1) #batch
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #batch
 
         affine_matrix[:,:,0,-1] = x_shift
         affine_matrix[:,:,1,-1] = y_shift
         
-        hint_shifted = hint_padded
+        hint_shifted = hint_padded.clone()
         for seq in range(self.seq_padding):
             hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
 
@@ -138,24 +137,49 @@ class ControlSeq(nn.Module):
         return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros
     
     def forward(self, cond):
-        hint = cond['c_concat']
-        seq_len = cond['c_seq_len']
-        seq_pos = cond['c_seq_pos']
+        hint = cond['c_concat'][0]
+        seq_len = cond['c_seq_len'][0]
+        seq_pos = cond['c_seq_pos'][0]
+        seq_mask = cond['c_seq_mask'][0]
+        
+        #method1
+        #hint_latent_ = torch.cat([backbone(hint[:,seq,]).unsqueeze(0) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)])
+        #hint_latent = einops.rearrange(hint_latent_, ('seq b c h w -> b seq c h w'))
 
-        hint_latent = torch.tensor([backbone(hint[:,seq,]) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)], requires_grad=True)
+        #mthod2: maybe more reliable as we split the seq into multi tensors and then concat them instead of direct access with indexing
+        splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
+        latents = []
+        for split, backbone in zip(splited_seq, self.backbone_block):
+            latents.append(backbone.forward(split.squeeze()).unsqueeze(0))
+        hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
+
         #apply transformation (if it works on the batch level, if not just apply it to the loop)
 
-        for sample in range(hint.shape[0]):
-            hint_latent[sample, seq_len:].zero_()
+        #method 1:
+        #for sample in range(hint.shape[0]):
+        #    seq_len_sample = seq_len[sample].type(torch.int)
+        #    hint_latent[sample, seq_len_sample:].zero_()
+        #    print(hint_latent[sample, seq_len_sample:].shape, seq_len_sample)
 
-        feature_map = self.geo_mapping(hint_latent, seq_pos)
+        #method 2:
+        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3]
+        
+        #print('seq_mask: ', seq_mask.shape)
+        #print('hint_masked: ', hint_masked.shape, torch.sum(hint_masked[-1]!=0))
+
+        feature_map = self.geo_mapping(hint_masked, seq_pos)
         resized_feature_map = torch.nn.functional.interpolate(
             feature_map,
-            size=(self.latent_size.shape[2],
-                  self.latent_size.shape[3]),
+            size=(self.latent_size[2],
+                  self.latent_size[3]),
             mode="bilinear")
 
-        return feature_map
+        outs = []
+        for zero_conv in self.zero_convs:
+            outs.append(zero_conv(resized_feature_map))
+
+        return outs
+    
 ##############################################################################################
 class ControlNet(nn.Module):
     def __init__(
@@ -424,7 +448,7 @@ class ControlNet(nn.Module):
 ############################################################################################################
 class ControlLDM(LatentDiffusion):
 
-    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, control_seq_length, control_seq_position, *args, **kwargs):
+    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, control_seq_length, control_seq_position, control_seq_mask, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
@@ -433,6 +457,7 @@ class ControlLDM(LatentDiffusion):
         self.control_seq = control_seq
         self.control_seq_length = control_seq_length
         self.control_seq_position = control_seq_position
+        self.control_seq_mask = control_seq_mask
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
@@ -442,7 +467,8 @@ class ControlLDM(LatentDiffusion):
             {'c_crossattn': [txt embedding tensor],
              'c_concat': [control images],
              'c_seq_len': [number of images in the sequence]
-             'c_seq_pos': [relative coordinates of each image in the sequence] (x,y position from the center of the aerial image)}
+             'c_seq_pos': [relative coordinates of each image in the sequence] (x,y position from the center of the aerial image),
+             'c_seq_mask': [mask of seq length]}
         if control_seq was false, only crossattn and concat are present in the dictionary
         """
         # latent z 'jpg' , CLIP embedding of 'txt' = LDM.get_input()
@@ -457,17 +483,23 @@ class ControlLDM(LatentDiffusion):
         else:
             seq_length = batch[self.control_seq_length]
             seq_position = batch[self.control_seq_position]
+            seq_mask = batch[self.control_seq_mask]
             if bs is not None:
                 seq_length = seq_length[:bs]
                 seq_position = seq_position[:bs]
+                seq_mask = seq_mask[:bs]
+
             seq_length = seq_length.to(self.device)
             seq_position = seq_position.to(self.device)
+            seq_mask = seq_mask.to(self.device)
+
             seq_length = seq_length.to(memory_format=torch.contiguous_format).float()
             seq_position = seq_position.to(memory_format=torch.contiguous_format).float()
+            seq_mask = seq_mask.to(memory_format=torch.contiguous_format).float()
             
         control = control.to(memory_format=torch.contiguous_format).float()
        
-        return x, dict(c_crossattn=[c], c_concat=[control], c_seq_len=[seq_length], c_seq_pos=[seq_position])
+        return x, dict(c_crossattn=[c], c_concat=[control], c_seq_len=[seq_length], c_seq_pos=[seq_position], c_seq_mask=[seq_mask])
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         """

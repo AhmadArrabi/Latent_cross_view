@@ -66,6 +66,8 @@ class VIGOR(torch.utils.data.Dataset):
         self.args = args
         self.root = root
 
+        self.seq_padding = 14
+
         self.mode = mode
         if self.mode not in ['train', 'test']:
             raise RuntimeError(f'{self.mode} is not implemented!')
@@ -73,7 +75,7 @@ class VIGOR(torch.utils.data.Dataset):
         # The below size is temporary should check later
         self.sat_size = [512, 512]#[320, 320]
         self.sat_size_default = [320, 320]
-        self.grd_size = [1024, 2048]#[128, 512]
+        self.grd_size = [128, 256]#[1024, 2048]#[128, 512]
 
         # transforms notice strong aug is added
         self.transform_ground = input_transform(size=self.grd_size, mode=self.mode)
@@ -138,7 +140,7 @@ class VIGOR(torch.utils.data.Dataset):
             # padding
             if num_g_imgs<=13:
                 zero_tensor = torch.zeros(ground_image_list[0].shape)
-                remaining_dummy_tensors = 14 - num_g_imgs
+                remaining_dummy_tensors =self.seq_padding - num_g_imgs
                 for i in range(remaining_dummy_tensors):
                     ground_image_list.append(zero_tensor)
                     ground_delta_list.append([0.0, 0.0])
@@ -148,15 +150,19 @@ class VIGOR(torch.utils.data.Dataset):
             #       e.g., batch.gnd.shape = [4, 42, width, height] 4 samples each has 12 ground images
             #       batch.sat.shape = [4, 3, width, height], 4 samples each has a sat image
             ground_imgs = torch.cat(ground_image_list, dim=0)
-            ground_imgs = ground_imgs.reshape(shape=(14, 3, ground_imgs.shape[1], ground_imgs.shape[2]))
+            ground_imgs = ground_imgs.reshape(shape=(self.seq_padding, 3, ground_imgs.shape[1], ground_imgs.shape[2]))
             
             ground_deltas = torch.tensor(ground_delta_list)
+
+            mask = torch.zeros(self.seq_padding)
+            mask[:num_g_imgs]=1
             
             return dict(jpg=aerial_image, 
                         txt=prompt, 
                         hint=ground_imgs, 
                         delta=ground_deltas, 
-                        len=num_g_imgs)
+                        len=num_g_imgs,
+                        mask = mask)
             
         
         elif self.mode == 'test':
@@ -184,19 +190,23 @@ class VIGOR(torch.utils.data.Dataset):
             # padding
             if len(ground_image_list)<=13:
                 zero_tensor = torch.zeros_like(ground_image_list[0])
-                remaining_dummy_tensors = 14 - len(ground_image_list)
+                remaining_dummy_tensors = self.seq_padding - len(ground_image_list)
                 for i in range(remaining_dummy_tensors):
                     ground_image_list.append(zero_tensor)
                     ground_delta_list.append(0.0)
                 
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_deltas = torch.tensor(ground_delta_list)
+
+            mask = torch.zeros(self.seq_padding)
+            mask[:num_g_imgs]=1
             
             return dict(jpg=aerial_image, 
                         txt=prompt, 
                         hint=ground_imgs, 
                         delta=ground_deltas, 
-                        len=num_g_imgs)
+                        len=num_g_imgs,
+                        mask = mask)
         else:
             print('not implemented!!')
             raise Exception

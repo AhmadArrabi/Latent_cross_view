@@ -12,6 +12,7 @@ model:
     control_seq: True
     control_seq_length: len
     control_seq_position: delta
+    control_seq_mask: mask
     image_size: 64
     channels: 4
     cond_stage_trainable: false
