@@ -14,8 +14,8 @@ from torchviz import make_dot
 from torchview import draw_graph
 import hiddenlayer as hl
 # First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-resume_path = './models/control_sd15_ini.ckpt'
-model = create_model('./models/cldm_v15.yaml').to('cuda')
+resume_path = './models/control_sd15_ini_2.ckpt'
+model = create_model('./models/cldm_v15_2.yaml').to('cuda')
 model.load_state_dict(load_state_dict(resume_path, location='cuda'))
 dataset = VIGOR(mode="train", same_area=True)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
@@ -30,11 +30,10 @@ x, dic = model.get_input(batch, 'jpg')
 print(x.shape, '*'*50) #[batch, 4, 64, 64]
 #t = torch.randint(0, 1000, (x.shape[0],), device='cuda').long()
 #eps = model.apply_model(x, t, dic)       
-latent_size = x.shape
 transformation, latent_ratio = 1,1
 seq_padding = 14
 model_channels = 320
-mod = ControlSeq(latent_size = latent_size, transformation = transformation, seq_padding = seq_padding, latent_ratio = latent_ratio, model_channels = model_channels).to('cuda')
+mod = ControlSeq(transformation = transformation, seq_padding = seq_padding, latent_ratio = latent_ratio, model_channels = model_channels).to('cuda')
 out = mod.forward(dic)
 loss_fn = nn.MSELoss()
 test_out = torch.cat(out)

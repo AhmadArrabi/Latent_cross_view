@@ -83,7 +83,6 @@ class ControlSeq(nn.Module):
     The output is expected to be a list that is passed to the ControledUnetModel
 
     args:
-    latent_size: latent vector shape z.shape = (B, C, H, W)
     seq_padding: fixed sequence length used after padding (= 14) 
     model_channels: channel width of latent space (I think ...)
     transformation: not yet implemented (name of tranformation to be used)
@@ -92,7 +91,6 @@ class ControlSeq(nn.Module):
     """
     def __init__(
             self,
-            latent_size,
             seq_padding,
             model_channels,
             transformation,
@@ -102,7 +100,7 @@ class ControlSeq(nn.Module):
         ):
         super().__init__()
 
-        self.latent_size = latent_size
+        self.latent_size = None
         self.seq_padding = seq_padding
         self.model_channels = model_channels
         self.transformation = transformation
@@ -190,7 +188,6 @@ class ControlSeq(nn.Module):
         #for sample in range(hint.shape[0]):
         #    seq_len_sample = seq_len[sample].type(torch.int)
         #    hint_latent[sample, seq_len_sample:].zero_()
-        #    print(hint_latent[sample, seq_len_sample:].shape, seq_len_sample)
 
         #method 2:
         hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
@@ -476,8 +473,15 @@ class ControlNet(nn.Module):
 
 ############################################################################################################
 class ControlLDM(LatentDiffusion):
+    def __init__(self, control_stage_config,
+                control_key,
+                only_mid_control,
+                control_seq, 
+                control_seq_length, 
+                control_seq_position,
+                control_seq_mask,
+                *args, **kwargs):
 
-    def __init__(self, control_stage_config, control_key, only_mid_control, control_seq, control_seq_length, control_seq_position, control_seq_mask, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
@@ -502,6 +506,7 @@ class ControlLDM(LatentDiffusion):
         """
         # latent z 'jpg' , CLIP embedding of 'txt' = LDM.get_input()
         x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs) 
+        self.control_model.latent_size = x.shape
         control = batch[self.control_key] #hint (seq of gnd imgs)
         if bs is not None:
             control = control[:bs]
@@ -549,12 +554,15 @@ class ControlLDM(LatentDiffusion):
 
         if cond['c_concat'] is None:
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control)
-        else:
+        elif not self.control_seq:
             #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
-            # make control a list or something
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
-            #print('\n'*100,'\n',len(control), control[0].shape, '\n'*100,'\n', control)
+            eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
+        else:
+            #self.control_model = ControlSeq
+            control = self.control_model.forward(conda=cond)
+            control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of ControlSeq
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
 
         return eps
