@@ -24,10 +24,12 @@ from CVUSA_dataset import TARGET_SIZE, W_TARGET, H_TARGET
 ######################################################################################
 class ControlledUnetModel(UNetModel):
     """
-    This class is like a maestro, it organizes and uses the controlNet class
-    so it is assumed that all results from the forward method in controlnet are
-    available before hand and this code design is responsible for connecting the
-    Unet
+    This class is like a maestro, it organizes and uses the output of the controlNet class
+    It is assumed that all results from the forward method in controlnet are available in 
+    a list before hand and this class determines how the controlNet influences the Unet
+
+    TODO: experiment with different methods of conditioning, e.g., condition decoder, encoder, 
+    middle block, or any other part of the Unet 
     """
     def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
         hs = []
@@ -60,12 +62,13 @@ class ResNet18(nn.Module):
     """
     def __init__(self, model_channels):
         super().__init__()
-        net = models.resnet18(pretrained = True)
+        net = models.resnet18(pretrained = True) #weights = RESNET.WEIGHTS to fix the warning
 
         layers_in = list(net.children())[:3]    #remove pooling layer
         layers_out = list(net.children())[4:-2] #remove classifiers
 
-        #add last conv layer so the channel width matches SD
+        #add last conv layer so the channel width becomes flexible (rn it matches the SD model, model_channels = 320)
+        #TODO: Double check the channel dim 
         layers_conv = [nn.Sequential(nn.Conv2d(layers_out[-1][-1].conv2.in_channels, model_channels, kernel_size=3, padding=1),
                                     nn.BatchNorm2d(model_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True))] 
         self.layers = nn.Sequential(*layers_in, *layers_out, *layers_conv)
@@ -74,42 +77,65 @@ class ResNet18(nn.Module):
         return self.layers(x)
     
 class ControlSeq(nn.Module):
+    """
+    ControlSeq expects a dict input with sequence data, it'll transform the sequenc into a 
+    latent representation and perform and geomatching scheme to control the SD model
+    The output is expected to be a list that is passed to the ControledUnetModel
+
+    args:
+    latent_size: latent vector shape z.shape = (B, C, H, W)
+    seq_padding: fixed sequence length used after padding (= 14) 
+    model_channels: channel width of latent space (I think ...)
+    transformation: not yet implemented (name of tranformation to be used)
+    latent_ratio: ratio between latent and aerial image to be used in geomapping (= 512/64 = 0.125)
+    dims: dimensions used for Conv layers
+    """
     def __init__(
             self,
             latent_size,
-            transformation,
-            seq_padding, #14
-            latent_ratio,
+            seq_padding,
             model_channels,
+            transformation,
+            latent_ratio,
             dims=2,
             device='cuda'            
         ):
         super().__init__()
 
-        self.dims = dims #conv2D
-        self.model_channels = model_channels
-        self.seq_padding = seq_padding
-        self.device = device
         self.latent_size = latent_size
-        self.latent_ratio = latent_ratio #size of latent vector of seq after polar trans
+        self.seq_padding = seq_padding
+        self.model_channels = model_channels
+        self.transformation = transformation
+        self.latent_ratio = latent_ratio 
+        self.dims = dims 
+        self.device = device
+        
         self.backbone_base = ResNet18(model_channels) # do we need timestepembedding for some reason?
         self.backbone_block = nn.ModuleList()
         self.zero_convs = nn.ModuleList()
 
-        for i in range(seq_padding):
+        # Seq latent space representation
+        for _ in range(seq_padding):
             self.backbone_block.append(self.backbone_base)
-            
-        self.transformation = transformation
 
-        for _ in range(13): #to be changed when determing how to influence the unet
+        #TODO: to be changed when determing how to influence the unet, rn it is applied to the decoder which has 13 blocks
+        for _ in range(13): 
             self.zero_convs.append(self.make_zero_conv(model_channels))
+    
     def log_polar_transform(self, x:str):
+        #TODO: kornia or some way to implement log transformation ... working on it
         pass
 
     def make_zero_conv(self, channels):
         return zero_module(conv_nd(self.dims, channels, channels, 1, padding=0))
     
     def geo_mapping(self, hint_latent, seq_pos):
+        """
+        Creates a feature map where each vector from the sequence is matched to its x,y position
+        args:
+        hint_latent: latent representation of image seq, expected shape = (B, Seq, C, H, W)
+        seq_pos: x,y position of each image in seq in pixel space, expected shape = (B, Seq, 2)
+        """
         desired_height = self.latent_size[2]
         desired_width = self.latent_size[3]
 
@@ -118,30 +144,33 @@ class ControlSeq(nn.Module):
 
         hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
         
-        # take care of ratio these shifts are in the pix domain
-        x_shift = (seq_pos[:,:,0]*0.125).round()
-        y_shift = (seq_pos[:,:,1]*-0.125).round()
+        # pixel to latent space
+        x_shift = (seq_pos[:,:,0]*self.latent_ratio).round()
+        y_shift = (seq_pos[:,:,1]*-self.latent_ratio).round()
         
+        #TODO: double check if this implementation is okay for backprob
         affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype).detach()
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #seq
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #batch
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
 
         affine_matrix[:,:,0,-1] = x_shift
         affine_matrix[:,:,1,-1] = y_shift
         
+        #TODO: double check if this implementation is okay for backprob .. we can do the same as before spliting the tensor and then cat instead of indexing
         hint_shifted = hint_padded.clone()
         for seq in range(self.seq_padding):
             hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
 
-        mask = hint_shifted < 1e-06 #should be zero
-        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros
+        mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
+        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
     
     def forward(self, cond):
         hint = cond['c_concat'][0]
-        seq_len = cond['c_seq_len'][0]
+        seq_len = cond['c_seq_len'][0] 
         seq_pos = cond['c_seq_pos'][0]
         seq_mask = cond['c_seq_mask'][0]
         
+        #BACKBONE
         #method1
         #hint_latent_ = torch.cat([backbone(hint[:,seq,]).unsqueeze(0) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)])
         #hint_latent = einops.rearrange(hint_latent_, ('seq b c h w -> b seq c h w'))
@@ -153,8 +182,10 @@ class ControlSeq(nn.Module):
             latents.append(backbone.forward(split.squeeze()).unsqueeze(0))
         hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
 
-        #apply transformation (if it works on the batch level, if not just apply it to the loop)
+        #PERSPECTIVE TRANSFORMATION
+        #TODO: apply transformation
 
+        #MASKING
         #method 1:
         #for sample in range(hint.shape[0]):
         #    seq_len_sample = seq_len[sample].type(torch.int)
@@ -162,11 +193,9 @@ class ControlSeq(nn.Module):
         #    print(hint_latent[sample, seq_len_sample:].shape, seq_len_sample)
 
         #method 2:
-        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3]
+        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
         
-        #print('seq_mask: ', seq_mask.shape)
-        #print('hint_masked: ', hint_masked.shape, torch.sum(hint_masked[-1]!=0))
-
+        #GEOMAPPING
         feature_map = self.geo_mapping(hint_masked, seq_pos)
         resized_feature_map = torch.nn.functional.interpolate(
             feature_map,
@@ -504,8 +533,14 @@ class ControlLDM(LatentDiffusion):
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         """
         cond is expected to be a dict:
-        cond = {'c_crossattn': [tensor from embedding 'txt'],
-                'c_concat': [seq of gnd images]}
+        cond = {'c_crossattn': [txt embedding tensor],
+                'c_concat': [control images],
+                'c_seq_len': [number of images in the sequence]
+                'c_seq_pos': [relative coordinates of each image in the sequence] (x,y position from the center of the aerial image),
+                'c_seq_mask': [mask of seq length]}
+        if control_seq was false, only crossattn and concat are present in the dictionary
+
+        TODO: implement contrlSeq in this function
         """
         assert isinstance(cond, dict)
         diffusion_model = self.model.diffusion_model #controlledunetmodule

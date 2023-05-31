@@ -27,6 +27,7 @@ for key, value in batch.items():
     if key != 'txt':
         value.to('cuda')
 x, dic = model.get_input(batch, 'jpg')
+print(x.shape, '*'*50) #[batch, 4, 64, 64]
 #t = torch.randint(0, 1000, (x.shape[0],), device='cuda').long()
 #eps = model.apply_model(x, t, dic)       
 latent_size = x.shape

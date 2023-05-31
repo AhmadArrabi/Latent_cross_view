@@ -1,5 +1,5 @@
 strict digraph model {
-	graph [ordering=in rankdir=TB size="179.7,179.7"]
+	graph [ordering=in rankdir=TB size="177.9,177.9"]
 	node [align=left fontname="Linux libertine" fontsize=10 height=0.2 margin=0 ranksep=0.1 shape=plaintext style=filled]
 	edge [fontsize=10]
 	0 [label=<
@@ -2852,45 +2852,6 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 8, 16) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(14, 320, 8, 16) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	223 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">ne<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(14, 320, 8, 16) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(14, 320, 8, 16) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	224 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">sum<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(14, 320, 8, 16) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">() </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	225 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
                         <TD ROWSPAN="2">pad<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
                         <TD COLSPAN="2">(2, 14, 320, 8, 16) </TD>
@@ -2900,7 +2861,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	226 [label=<
+	223 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -2911,6 +2872,45 @@ strict digraph model {
                     <TR>
                         <TD COLSPAN="2">output: </TD>
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	224 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 14, 2) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 14) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	225 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">mul<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 14) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 14) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	226 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">round<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 14) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 14) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
 	227 [label=<
@@ -2956,45 +2956,6 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 2) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 14) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	231 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">mul<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 14) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	232 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">round<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 14) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	233 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
                         <TD ROWSPAN="2">clone<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
@@ -3004,13 +2965,52 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	234 [label=<
+	231 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
                         <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	232 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	233 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=aliceblue]
+	234 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3021,9 +3021,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3034,9 +3034,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3047,9 +3047,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3060,9 +3060,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3073,9 +3073,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3086,9 +3086,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3099,9 +3099,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3112,9 +3112,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3125,9 +3125,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3138,9 +3138,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3151,9 +3151,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3164,9 +3164,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3177,9 +3177,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3190,9 +3190,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3203,9 +3203,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3216,9 +3216,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3229,9 +3229,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3242,9 +3242,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3255,9 +3255,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3268,9 +3268,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3281,9 +3281,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3294,9 +3294,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3307,9 +3307,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3320,9 +3320,9 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
@@ -3330,45 +3330,6 @@ strict digraph model {
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
 	259 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	260 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">__getitem__<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	261 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">grid_sample<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=aliceblue]
-	262 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3381,7 +3342,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	263 [label=<
+	260 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3394,7 +3355,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 14, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	264 [label=<
+	261 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3407,7 +3368,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	265 [label=<
+	262 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3420,7 +3381,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	266 [label=<
+	263 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3433,7 +3394,7 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
-	267 [label=<
+	264 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
@@ -3446,243 +3407,243 @@ strict digraph model {
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=aliceblue]
+	265 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
+	266 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
+	267 [label=<
+                    <TABLE BORDER="0" CELLBORDER="1"
+                    CELLSPACING="0" CELLPADDING="4">
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	268 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	269 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	270 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	271 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	272 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	273 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	274 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	275 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	276 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	277 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	278 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	279 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	280 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	281 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	282 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	283 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	284 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	285 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	286 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	287 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	288 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	289 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	290 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
-	291 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
-	292 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
-	293 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                         <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
                     </TABLE>> fillcolor=lightyellow]
 	1 -> 5
+	3 -> 224
 	3 -> 227
-	3 -> 230
 	4 -> 220
 	5 -> 6
 	5 -> 21
@@ -3914,75 +3875,72 @@ strict digraph model {
 	219 -> 221
 	220 -> 221
 	221 -> 222
-	221 -> 225
 	222 -> 223
-	223 -> 224
+	223 -> 230
+	223 -> 231
+	223 -> 233
+	223 -> 235
+	223 -> 237
+	223 -> 239
+	223 -> 241
+	223 -> 243
+	223 -> 245
+	223 -> 247
+	223 -> 249
+	223 -> 251
+	223 -> 253
+	223 -> 255
+	223 -> 257
+	224 -> 225
 	225 -> 226
-	226 -> 233
-	226 -> 234
-	226 -> 236
-	226 -> 238
-	226 -> 240
-	226 -> 242
-	226 -> 244
-	226 -> 246
-	226 -> 248
-	226 -> 250
-	226 -> 252
-	226 -> 254
-	226 -> 256
-	226 -> 258
-	226 -> 260
 	227 -> 228
 	228 -> 229
-	230 -> 231
+	230 -> 259
+	230 -> 260
 	231 -> 232
-	233 -> 262
-	233 -> 263
-	234 -> 235
-	236 -> 237
-	238 -> 239
-	240 -> 241
-	242 -> 243
-	244 -> 245
-	246 -> 247
-	248 -> 249
-	250 -> 251
-	252 -> 253
-	254 -> 255
-	256 -> 257
-	258 -> 259
+	233 -> 234
+	235 -> 236
+	237 -> 238
+	239 -> 240
+	241 -> 242
+	243 -> 244
+	245 -> 246
+	247 -> 248
+	249 -> 250
+	251 -> 252
+	253 -> 254
+	255 -> 256
+	257 -> 258
+	259 -> 260
+	259 -> 262
 	260 -> 261
+	261 -> 263
 	262 -> 263
-	262 -> 265
 	263 -> 264
-	264 -> 266
+	264 -> 265
+	264 -> 267
+	264 -> 269
+	264 -> 271
+	264 -> 273
+	264 -> 275
+	264 -> 277
+	264 -> 279
+	264 -> 281
+	264 -> 283
+	264 -> 285
+	264 -> 287
+	264 -> 289
 	265 -> 266
-	266 -> 267
 	267 -> 268
-	267 -> 270
-	267 -> 272
-	267 -> 274
-	267 -> 276
-	267 -> 278
-	267 -> 280
-	267 -> 282
-	267 -> 284
-	267 -> 286
-	267 -> 288
-	267 -> 290
-	267 -> 292
-	268 -> 269
-	270 -> 271
-	272 -> 273
-	274 -> 275
-	276 -> 277
-	278 -> 279
-	280 -> 281
-	282 -> 283
-	284 -> 285
-	286 -> 287
-	288 -> 289
-	290 -> 291
-	292 -> 293
+	269 -> 270
+	271 -> 272
+	273 -> 274
+	275 -> 276
+	277 -> 278
+	279 -> 280
+	281 -> 282
+	283 -> 284
+	285 -> 286
+	287 -> 288
+	289 -> 290
 }
