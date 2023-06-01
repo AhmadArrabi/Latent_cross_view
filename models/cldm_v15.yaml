@@ -9,7 +9,7 @@ model:
     first_stage_key: jpg
     cond_stage_key: txt
     control_key: hint
-    control_seq: True
+    control_seq: false
     control_seq_length: len
     control_seq_position: delta
     control_seq_mask: mask

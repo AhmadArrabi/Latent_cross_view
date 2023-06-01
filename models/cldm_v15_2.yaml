@@ -27,8 +27,8 @@ model:
       params:
         seq_padding: 14
         model_channels: 320
+        channel_mult: [ 1, 2, 4, 4 ]
         transformation: transformation
-        latent_ratio: 0.125 
         dims: 2 
         device: cuda
         

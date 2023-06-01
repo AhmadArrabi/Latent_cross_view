@@ -26,8 +26,11 @@ batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
 for key, value in batch.items():
     if key != 'txt':
         value.to('cuda')
-x, dic = model.get_input(batch, 'jpg')
-print(x.shape, '*'*50) #[batch, 4, 64, 64]
+print(model.training_step(batch, 1))
+
+#x, dic = model.get_input(batch, 'jpg')
+#print(x.shape, '*'*50) #[batch, 4, 64, 64]
+"""
 #t = torch.randint(0, 1000, (x.shape[0],), device='cuda').long()
 #eps = model.apply_model(x, t, dic)       
 transformation, latent_ratio = 1,1
@@ -50,10 +53,12 @@ print(dic['c_seq_pos'][0].grad, '*'*80, '\ln')
 print(test_out.grad, '*'*80, '\ln')
 #print(x, dic)
 """
+"""
 aerial shape:  torch.Size([4, 3, 640, 640])
 hint shape  :  torch.Size([4, 14, 3, 1024, 2048])
 delta hsape :  torch.Size([4, 14, 2])
 number of ground:  tensor([2, 1, 2, 3])
 text:  ['Photo-realistic aerial-view image with high quality details.', 'Photo-realistic aerial-view image with high quality details.', 'Photo-realistic aerial-view image with high quality details.', 'Photo-realistic aerial-view image with high quality details.']
 """
+
 
