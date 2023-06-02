@@ -9,7 +9,7 @@ model:
     first_stage_key: jpg
     cond_stage_key: txt
     control_key: hint
-    control_seq: seq_images
+    control_seq: seq_images_one_cond
     control_seq_length: len
     control_seq_position: delta
     control_seq_mask: mask
@@ -23,16 +23,32 @@ model:
     only_mid_control: False
 
     control_stage_config:
-      target: cldm.cldm.ControlSeq
+      target: cldm.cldm.ControlNet_seq
       params:
-        seq_padding: 14
+        image_size: 32 # unused
+        in_channels: 4
+        hint_channels: 3
         model_channels: 320
+        attention_resolutions: [ 4, 2, 1 ]
+        num_res_blocks: 2
         channel_mult: [ 1, 2, 4, 4 ]
-        transformation: transformation
-        img_size: 512
-        dims: 2 
-        device: cuda
-        
+        num_heads: 8
+        use_spatial_transformer: True
+        transformer_depth: 1
+        context_dim: 768
+        use_checkpoint: True
+        legacy: False
+        hint_block_config:
+          target: cldm.cldm.ControlSeq_condition
+          params:
+            seq_padding: 14
+            model_channels: 320
+            channel_mult: [ 1, 2, 4, 4 ]
+            transformation: transformation
+            img_size: 512
+            dims: 2 
+            device: cuda
+
 
     unet_config:
       target: cldm.cldm.ControlledUnetModel
@@ -41,7 +57,7 @@ model:
         in_channels: 4
         out_channels: 4
         model_channels: 320
-        control_seq: seq_images
+        control_seq: seq_images_one_cond
         control_block: encoder
         attention_resolutions: [ 4, 2, 1 ]
         num_res_blocks: 2

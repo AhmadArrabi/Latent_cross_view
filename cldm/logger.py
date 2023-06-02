@@ -10,11 +10,12 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 FOLDER_NAME = "CVUSA blur exp"
 
 class ImageLogger(Callback):
-    def __init__(self, batch_frequency=2000, max_images=4, clamp=True, increase_log_steps=True,
+    def __init__(self, local_dir, batch_frequency=2000, max_images=4, clamp=True, increase_log_steps=True,
                  rescale=True, disabled=False, log_on_batch_idx=False, log_first_step=False,
                  log_images_kwargs=None):
         super().__init__()
         self.rescale = rescale
+        self.local_dir = local_dir
         self.batch_freq = batch_frequency
         self.max_images = max_images
         if not increase_log_steps:
@@ -27,9 +28,10 @@ class ImageLogger(Callback):
 
     @rank_zero_only
     def log_local(self, save_dir, split, images, global_step, current_epoch, batch_idx):
-        root = os.path.join(save_dir, FOLDER_NAME, split)
+        root = os.path.join(save_dir, self.local_dir, split)
         for k in images:
-            grid = torchvision.utils.make_grid(images[k], nrow=4)
+            print(k)
+            grid = torchvision.utils.make_grid(images[k], nrow=2)
             if self.rescale:
                 grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
             grid = grid.transpose(0, 1).transpose(1, 2).squeeze(-1)
@@ -43,8 +45,8 @@ class ImageLogger(Callback):
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx  # if self.log_on_batch_idx else pl_module.global_step
         if (self.check_frequency(check_idx) and  # batch_idx % self.batch_freq == 0
-                hasattr(pl_module, "log_images") and
-                callable(pl_module.log_images) and
+                hasattr(pl_module, "log_images_seq") and
+                callable(pl_module.log_images_seq) and
                 self.max_images > 0):
             logger = type(pl_module.logger)
 
@@ -53,7 +55,7 @@ class ImageLogger(Callback):
                 pl_module.eval()
 
             with torch.no_grad():
-                images = pl_module.log_images(batch, split=split, **self.log_images_kwargs)
+                images = pl_module.log_images_seq(batch, split=split, **self.log_images_kwargs)
 
             for k in images:
                 N = min(images[k].shape[0], self.max_images)
@@ -75,3 +77,5 @@ class ImageLogger(Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self.disabled:
             self.log_img(pl_module, batch, batch_idx, split="train")
+
+##################################################################################################################

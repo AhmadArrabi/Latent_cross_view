@@ -1,5 +1,5 @@
 strict digraph model {
-	graph [ordering=in rankdir=TB size="177.9,177.9"]
+	graph [ordering=in rankdir=TB size="177.29999999999998,177.29999999999998"]
 	node [align=left fontname="Linux libertine" fontsize=10 height=0.2 margin=0 ranksep=0.1 shape=plaintext style=filled]
 	edge [fontsize=10]
 	0 [label=<
@@ -3398,7 +3398,7 @@ strict digraph model {
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
                     <TR>
-                        <TD ROWSPAN="2">interpolate<BR/>depth:1</TD>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
@@ -3406,226 +3406,213 @@ strict digraph model {
                         <TD COLSPAN="2">output: </TD>
                         <TD COLSPAN="2">(2, 320, 64, 64) </TD>
                     </TR>
-                    </TABLE>> fillcolor=aliceblue]
+                    </TABLE>> fillcolor=darkseagreen1]
 	265 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	266 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	267 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	268 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	269 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	270 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	271 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	272 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 640, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	273 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 640, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	274 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 640, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	275 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 640, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	276 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 640, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	277 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 640, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	278 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	279 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	280 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	281 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	282 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	283 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	284 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	285 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	286 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
+                    <TR>
+                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
+                        <TD COLSPAN="2">input:</TD>
+                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                    </TR>
+                    <TR>
+                        <TD COLSPAN="2">output: </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
+                    </TR>
+                    </TABLE>> fillcolor=darkseagreen1]
 	287 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                    <TR>
-                        <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
-                        <TD COLSPAN="2">input:</TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    <TR>
-                        <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
-                    </TR>
-                    </TABLE>> fillcolor=darkseagreen1]
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
+                    </TABLE>> fillcolor=lightyellow]
 	288 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
-                    </TABLE>> fillcolor=lightyellow]
-	289 [label=<
-                    <TABLE BORDER="0" CELLBORDER="1"
-                    CELLSPACING="0" CELLPADDING="4">
                     <TR>
                         <TD ROWSPAN="2">Conv2d<BR/>depth:1</TD>
                         <TD COLSPAN="2">input:</TD>
@@ -3633,13 +3620,13 @@ strict digraph model {
                     </TR>
                     <TR>
                         <TD COLSPAN="2">output: </TD>
-                        <TD COLSPAN="2">(2, 320, 64, 64) </TD>
+                        <TD COLSPAN="2">(2, 1280, 64, 64) </TD>
                     </TR>
                     </TABLE>> fillcolor=darkseagreen1]
-	290 [label=<
+	289 [label=<
                     <TABLE BORDER="0" CELLBORDER="1"
                     CELLSPACING="0" CELLPADDING="4">
-                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 320, 64, 64)</TD></TR>
+                        <TR><TD>output-tensor<BR/>depth:0</TD><TD>(2, 1280, 64, 64)</TD></TR>
                     </TABLE>> fillcolor=lightyellow]
 	1 -> 5
 	3 -> 224
@@ -3917,30 +3904,29 @@ strict digraph model {
 	261 -> 263
 	262 -> 263
 	263 -> 264
+	263 -> 266
+	263 -> 268
+	263 -> 270
+	263 -> 272
+	263 -> 274
+	263 -> 276
+	263 -> 278
+	263 -> 280
+	263 -> 282
+	263 -> 284
+	263 -> 286
+	263 -> 288
 	264 -> 265
-	264 -> 267
-	264 -> 269
-	264 -> 271
-	264 -> 273
-	264 -> 275
-	264 -> 277
-	264 -> 279
-	264 -> 281
-	264 -> 283
-	264 -> 285
-	264 -> 287
-	264 -> 289
-	265 -> 266
-	267 -> 268
-	269 -> 270
-	271 -> 272
-	273 -> 274
-	275 -> 276
-	277 -> 278
-	279 -> 280
-	281 -> 282
-	283 -> 284
-	285 -> 286
-	287 -> 288
-	289 -> 290
+	266 -> 267
+	268 -> 269
+	270 -> 271
+	272 -> 273
+	274 -> 275
+	276 -> 277
+	278 -> 279
+	280 -> 281
+	282 -> 283
+	284 -> 285
+	286 -> 287
+	288 -> 289
 }

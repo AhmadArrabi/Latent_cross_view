@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 #from .augmentations import HFlip, Rotate
 import torchvision
 import json
+import einops
 
 class LimitedFoV(object):
     def __init__(self, fov=360.):
@@ -116,6 +117,7 @@ class VIGOR(torch.utils.data.Dataset):
         # TODO
         # Implement random sampled center in aerial images
         # Implement LS aug (rotate, flip)
+        index=5
         if self.mode == 'train':
             prompt = 'Photo-realistic aerial-view image with high quality details.'
             aerial_image_name = self.train_list[index]
@@ -125,6 +127,7 @@ class VIGOR(torch.utils.data.Dataset):
             temp_img = temp_img.convert('RGB')
             
             aerial_image = self.transform_aerial(temp_img)
+            aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
             
             ground_image_list = []
             ground_delta_list = []
