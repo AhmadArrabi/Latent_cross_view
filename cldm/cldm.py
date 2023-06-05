@@ -16,10 +16,9 @@ from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from ldm.modules.attention import SpatialTransformer
 from ldm.modules.diffusionmodules.openaimodel import UNetModel, TimestepEmbedSequential, ResBlock, Downsample, AttentionBlock
-from ldm.models.diffusion.ddpm import LatentDiffusion
+from ldm.models.diffusion.ddpm import LatentDiffusion, disabled_train
 from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
-from CVUSA_dataset import TARGET_SIZE, W_TARGET, H_TARGET
 
 ############################################################################################################
 class ControlledUnetModel(UNetModel):
@@ -34,7 +33,7 @@ class ControlledUnetModel(UNetModel):
     def __init__(self, image_size, in_channels, model_channels, control_seq, control_block, out_channels, num_res_blocks, attention_resolutions, dropout=0, channel_mult=..., conv_resample=True, dims=2, num_classes=None, use_checkpoint=False, use_fp16=False, num_heads=-1, num_head_channels=-1, num_heads_upsample=-1, use_scale_shift_norm=False, resblock_updown=False, use_new_attention_order=False, use_spatial_transformer=False, transformer_depth=1, context_dim=None, n_embed=None, legacy=True, disable_self_attentions=None, num_attention_blocks=None, disable_middle_self_attn=False, use_linear_in_transformer=False):
         super().__init__(image_size, in_channels, model_channels, out_channels, num_res_blocks, attention_resolutions, dropout, channel_mult, conv_resample, dims, num_classes, use_checkpoint, use_fp16, num_heads, num_head_channels, num_heads_upsample, use_scale_shift_norm, resblock_updown, use_new_attention_order, use_spatial_transformer, transformer_depth, context_dim, n_embed, legacy, disable_self_attentions, num_attention_blocks, disable_middle_self_attn, use_linear_in_transformer)
         self.control_seq = control_seq
-        self.control_block = control_block
+        self.control_block = control_block 
 
     def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
         hs = []
@@ -156,7 +155,7 @@ class ControlSeq(nn.Module):
         x_shift = (seq_pos[:,:,0]*latent_ratio).round()
         y_shift = (seq_pos[:,:,1]*-latent_ratio).round()
         
-        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype).detach()
+        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
         affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
         affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
 
@@ -616,8 +615,23 @@ class ControlLDM(LatentDiffusion):
             seq_mask = seq_mask.to(memory_format=torch.contiguous_format).float()
             
             control = control.to(memory_format=torch.contiguous_format).float()
-       
+
+            #print('*'*50, '\ncross atn', c.shape, c.requires_grad, c.grad, '\n',
+            #      'c_concat', control.shape, control.requires_grad, control.grad, '\n',
+            #      'c_seq_len ', seq_length.shape, seq_length.requires_grad ,seq_length.grad, '\n',
+            #      'c_seq_pos ', seq_position.shape, seq_position.requires_grad ,seq_position.grad, '\n',
+            #      'c_seq_mask atn', seq_mask.shape, seq_mask.requires_grad ,seq_mask.grad, '\n',
+            #      'Z', x.shape, x.requires_grad, x.grad, '\n')        
+            
             return x, dict(c_crossattn=[c], c_concat=[control], c_seq_len=[seq_length], c_seq_pos=[seq_position], c_seq_mask=[seq_mask])
+    
+    def disable_SD(self):
+        self.model.diffusion_model.eval()
+        self.model.diffusion_model.train = disabled_train
+        for param in self.model.diffusion_model.input_blocks.parameters():
+            param.requires_grad = False
+        for param in self.model.diffusion_model.middle_block.parameters():
+            param.requires_grad = False
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         """
@@ -630,6 +644,8 @@ class ControlLDM(LatentDiffusion):
         if control_seq was 'single_image', only crossattn and concat are present in the dictionary
         """
         assert isinstance(cond, dict)
+
+        self.disable_SD()
         diffusion_model = self.model.diffusion_model #controlledunetmodule
 
         cond_txt = torch.cat(cond['c_crossattn'], 1) 
@@ -644,8 +660,10 @@ class ControlLDM(LatentDiffusion):
         elif self.control_seq=='seq_images':
             #self.control_model = ControlSeq
             control = self.control_model.forward(cond=cond)
+            print(self.control_model.named_parameters())
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of ControlSeq
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
+            print(diffusion_model.named_parameters())
         elif self.control_seq=='seq_images_one_cond':
             #self.control_model = ControlNet_seq
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt, cond=cond)
