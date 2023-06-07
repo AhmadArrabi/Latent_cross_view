@@ -41,16 +41,21 @@ class ControlledUnetModel(UNetModel):
             t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
             emb = self.time_embed(t_emb)
             h = x.type(self.dtype)
+            #print('INPUT SHAPE: ', h.shape, '*'*20)
             for module in self.input_blocks:
                 h = module(h, emb, context)
+                #print('INPUT BLOCK SHAPE: ', h.shape, '*'*20)
                 hs.append(h)
+            print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
             h = self.middle_block(h, emb, context)
+            print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
 
         if control is not None:
             mid_control = control.pop()
             if self.control_seq=='seq_images':
                 mid_control_resized = torch.nn.functional.interpolate(mid_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
             h += mid_control_resized
+            print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control_resized.shape, '*'*20)
 
         for i, module in enumerate(self.output_blocks):
             if only_mid_control or control is None:
@@ -59,12 +64,21 @@ class ControlledUnetModel(UNetModel):
                 next_layer_control = control.pop()
                 if self.control_seq=='seq_images':
                     next_layer_control_resized = torch.nn.functional.interpolate(next_layer_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
-                h = torch.cat([h, hs.pop() + next_layer_control_resized], dim=1)
-                
+                temp = hs.pop()
+                print('h shape before cat:', h.shape)
+                print('hs the thing that will be added to control prev block (TEMP): ', temp.shape)
+                print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control_resized.shape, '*'*20)
+                h = torch.cat([h, temp + next_layer_control_resized], dim=1)
+                print('h shape after cat (before input to out block) :', h.shape)
+                                
             h = module(h, emb, context)
+            print('AFTER OUTPUT BLOCK SHAPE: ', h.shape, '*'*20)
+            #print('CONTROL OUT BLOCK SHAPE: ', next_layer_control_resized.shape, '*'*20)
             
         h = h.type(x.dtype)
-        return self.out(h)
+        n = self.out(h)
+        print('FINAL BLOCK SHAPE: ', n.shape, '*'*20)
+        return n
 ###############################################################################################################
 class ResNet18(nn.Module):
     """
@@ -84,6 +98,29 @@ class ResNet18(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+    
+class ConvAlignBlock(nn.Module):
+    """
+    Mini conv block to align feature map's dimensions with the ControlledUnet 
+    """
+    def __init__(self,
+                dims,
+                channel_mult,
+                control_type='decoder_mid'
+                ):
+        super().__init__()
+        self.dims = dict
+        self.channel_mult = channel_mult
+
+        if (control_type == 'decoder_mid') or (control_type == 'encoder_mid'):
+            self.num_convs = len(channel_mult) + 1
+        elif control_type == 'mid':
+            self.num_convs = 1
+
+        
+
+    def make_zero_conv(self, in_channels, out_channels):
+        return zero_module(conv_nd(self.dims, in_channels, out_channels, 1, padding=0))
     
 class ControlSeq(nn.Module):
     """
@@ -120,6 +157,7 @@ class ControlSeq(nn.Module):
         self.device = device
         
         self.backbone_base = ResNet18(model_channels) 
+        
         self.zero_convs = nn.ModuleList()
 
         #TODO: to be changed when determing how to influence the unet, rn it is applied to the decoder which has 13 blocks (control_block = 'decoder' in .yaml file)
@@ -478,79 +516,6 @@ class ControlNet(nn.Module):
         outs.append(self.middle_block_out(h, emb, context))
 
         return outs
-
-#############################################################################################################
-class ControlNet_seq(ControlNet):
-    """
-    replica of ControlNet but takes condition as sequence and applies the geomapping
-    so the feature map from the geomapping is the condition on the controlNet
-    """
-    def __init__(self, image_size, in_channels, model_channels, hint_channels, num_res_blocks, attention_resolutions, hint_block_config, dropout=0, channel_mult=(1, 2, 4, 8), conv_resample=True, dims=2, use_checkpoint=False, use_fp16=False, num_heads=-1, num_head_channels=-1, num_heads_upsample=-1, use_scale_shift_norm=False, resblock_updown=False, use_new_attention_order=False, use_spatial_transformer=False, transformer_depth=1, context_dim=None, n_embed=None, legacy=True, disable_self_attentions=None, num_attention_blocks=None, disable_middle_self_attn=False, use_linear_in_transformer=False):
-        super().__init__(image_size, in_channels, model_channels, hint_channels, num_res_blocks, attention_resolutions, dropout, channel_mult, conv_resample, dims, use_checkpoint, use_fp16, num_heads, num_head_channels, num_heads_upsample, use_scale_shift_norm, resblock_updown, use_new_attention_order, use_spatial_transformer, transformer_depth, context_dim, n_embed, legacy, disable_self_attentions, num_attention_blocks, disable_middle_self_attn, use_linear_in_transformer)
-        self.input_hint_block = instantiate_from_config(hint_block_config)
-
-    def forward(self, x, hint, timesteps, context, cond, **kwargs):
-        t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
-        emb = self.time_embed(t_emb)
-        guided_hint = self.input_hint_block(cond=cond)
-
-        outs = []
-
-        h = x.type(self.dtype)
-        for module, zero_conv in zip(self.input_blocks, self.zero_convs):
-            if guided_hint is not None:
-                h = module(h, emb, context)
-                # resize the guided signal to main SD size
-                resized_guided_hint = torch.nn.functional.interpolate(
-                    guided_hint, 
-                    size=(h.shape[2], 
-                          h.shape[3]), 
-                    mode="bilinear")
-                h += resized_guided_hint
-                guided_hint = None
-            else:
-                h = module(h, emb, context)
-            outs.append(zero_conv(h, emb, context))
-
-        h = self.middle_block(h, emb, context)
-        outs.append(self.middle_block_out(h, emb, context))
-
-        return outs
-
-
-class ControlSeq_condition(ControlSeq):
-    def __init__(self, seq_padding, model_channels, channel_mult, transformation, img_size=512, dims=2, device='cuda'):
-        super().__init__(seq_padding, model_channels, channel_mult, transformation, img_size, dims, device)
-
-    def forward(self, cond):
-        hint = cond['c_concat'][0]
-        seq_len = cond['c_seq_len'][0] 
-        seq_pos = cond['c_seq_pos'][0]
-        seq_mask = cond['c_seq_mask'][0]
-        
-        #BACKBONE
-        splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
-        latents = []
-        for split in splited_seq:
-            latents.append(self.backbone_base.forward(split.squeeze()).unsqueeze(0))
-        hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
-
-        #PERSPECTIVE TRANSFORMATION
-        #TODO: apply transformation
-
-        #MASKING
-        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
-        
-        #GEOMAPPING
-        feature_map = self.geo_mapping(hint_masked, seq_pos)
-        #will be removed probably
-        resized_feature_map = torch.nn.functional.interpolate(
-            feature_map,
-            size=(self.latent_size[2],
-                  self.latent_size[3]),
-            mode="bilinear")
-        
-        return resized_feature_map
 ############################################################################################################
 class ControlLDM(LatentDiffusion):
     def __init__(self, control_stage_config,
@@ -645,7 +610,7 @@ class ControlLDM(LatentDiffusion):
         """
         assert isinstance(cond, dict)
 
-        self.disable_SD()
+        #self.disable_SD()
         diffusion_model = self.model.diffusion_model #controlledunetmodule
 
         cond_txt = torch.cat(cond['c_crossattn'], 1) 
@@ -660,16 +625,27 @@ class ControlLDM(LatentDiffusion):
         elif self.control_seq=='seq_images':
             #self.control_model = ControlSeq
             control = self.control_model.forward(cond=cond)
-            print(self.control_model.named_parameters())
+            #print(self.control_model.named_parameters())
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of ControlSeq
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
-            print(diffusion_model.named_parameters())
+            #print(diffusion_model.named_parameters())
         elif self.control_seq=='seq_images_one_cond':
             #self.control_model = ControlNet_seq
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt, cond=cond)
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
     
+        #s = dict(list(self.named_parameters()))
+#
+        #for key, item in s.items():
+        #    print(key)
+        #    if(item.requires_grad):
+        #        print('requiresed grad')
+        #    else: print('does not requiresed grad')
+        #    if(item.grad is None):
+        #        print('This is also None')
+        #    else: print('NOT None')
+        
         return eps
 
     @torch.no_grad()
@@ -828,4 +804,75 @@ class ControlLDM(LatentDiffusion):
             self.control_model = self.control_model.cpu()
             self.first_stage_model = self.first_stage_model.cuda()
             self.cond_stage_model = self.cond_stage_model.cuda()
-###############################################################################
+#############################################FUTURE PLAN################################################################
+class ControlNet_seq(ControlNet):
+    """
+    replica of ControlNet but takes condition as sequence and applies the geomapping
+    so the feature map from the geomapping is the condition on the controlNet
+    """
+    def __init__(self, image_size, in_channels, model_channels, hint_channels, num_res_blocks, attention_resolutions, hint_block_config, dropout=0, channel_mult=(1, 2, 4, 8), conv_resample=True, dims=2, use_checkpoint=False, use_fp16=False, num_heads=-1, num_head_channels=-1, num_heads_upsample=-1, use_scale_shift_norm=False, resblock_updown=False, use_new_attention_order=False, use_spatial_transformer=False, transformer_depth=1, context_dim=None, n_embed=None, legacy=True, disable_self_attentions=None, num_attention_blocks=None, disable_middle_self_attn=False, use_linear_in_transformer=False):
+        super().__init__(image_size, in_channels, model_channels, hint_channels, num_res_blocks, attention_resolutions, dropout, channel_mult, conv_resample, dims, use_checkpoint, use_fp16, num_heads, num_head_channels, num_heads_upsample, use_scale_shift_norm, resblock_updown, use_new_attention_order, use_spatial_transformer, transformer_depth, context_dim, n_embed, legacy, disable_self_attentions, num_attention_blocks, disable_middle_self_attn, use_linear_in_transformer)
+        self.input_hint_block = instantiate_from_config(hint_block_config)
+
+    def forward(self, x, hint, timesteps, context, cond, **kwargs):
+        t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
+        emb = self.time_embed(t_emb)
+        guided_hint = self.input_hint_block(cond=cond)
+
+        outs = []
+
+        h = x.type(self.dtype)
+        for module, zero_conv in zip(self.input_blocks, self.zero_convs):
+            if guided_hint is not None:
+                h = module(h, emb, context)
+                # resize the guided signal to main SD size
+                resized_guided_hint = torch.nn.functional.interpolate(
+                    guided_hint, 
+                    size=(h.shape[2], 
+                          h.shape[3]), 
+                    mode="bilinear")
+                h += resized_guided_hint
+                guided_hint = None
+            else:
+                h = module(h, emb, context)
+            outs.append(zero_conv(h, emb, context))
+
+        h = self.middle_block(h, emb, context)
+        outs.append(self.middle_block_out(h, emb, context))
+
+        return outs
+
+
+class ControlSeq_condition(ControlSeq):
+    def __init__(self, seq_padding, model_channels, channel_mult, transformation, img_size=512, dims=2, device='cuda'):
+        super().__init__(seq_padding, model_channels, channel_mult, transformation, img_size, dims, device)
+
+    def forward(self, cond):
+        hint = cond['c_concat'][0]
+        seq_len = cond['c_seq_len'][0] 
+        seq_pos = cond['c_seq_pos'][0]
+        seq_mask = cond['c_seq_mask'][0]
+        
+        #BACKBONE
+        splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
+        latents = []
+        for split in splited_seq:
+            latents.append(self.backbone_base.forward(split.squeeze()).unsqueeze(0))
+        hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
+
+        #PERSPECTIVE TRANSFORMATION
+        #TODO: apply transformation
+
+        #MASKING
+        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
+        
+        #GEOMAPPING
+        feature_map = self.geo_mapping(hint_masked, seq_pos)
+        #will be removed probably
+        resized_feature_map = torch.nn.functional.interpolate(
+            feature_map,
+            size=(self.latent_size[2],
+                  self.latent_size[3]),
+            mode="bilinear")
+        
+        return resized_feature_map

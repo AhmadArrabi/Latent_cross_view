@@ -16,63 +16,61 @@ from torchview import draw_graph
 
 #First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
 resume_path = './models/control_sd15_ini_2.ckpt'
-model = create_model('./models/cldm_v15_2.yaml').to('cuda')#.cpu()
-model.load_state_dict(load_state_dict(resume_path, location='cuda'))
-model.learning_rate = 0.00001
+model = create_model('./models/cldm_v15_2.yaml').cpu()
+model.load_state_dict(load_state_dict(resume_path, location='cpu'))
+model.learning_rate = 0.2
 model.sd_locked = True
 model.only_mid_control = False
 
 dataset = VIGOR(mode="train", same_area=True)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
 batch = next(iter(dataloader))
-batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
-
+#batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
+#
 #batch['hint'] = batch['hint'][:,0,:,:,:]
 #batch['hint'] = einops.rearrange(batch['hint'], 'b c h w -> b h w c')
 
-dic = {
-    'c_crossattn': [torch.randn(2, 77, 768).to('cuda')], 
-    'c_concat'   : [torch.randn(2, 14, 3, 128, 256).to('cuda')],
-    'c_seq_len'  : [torch.randn(2).to('cuda')],
-    'c_seq_pos'  : [torch.randn(2, 14, 2).to('cuda')],
-    'c_seq_mask' : [torch.randn(2, 14).to('cuda')]
-}  
-x = torch.randn(2, 4, 64, 64).to('cuda')
-model.control_model.latent_size = (2, 320, 64, 64)
-model.configure_optimizers()
+#dic = {
+#    'c_crossattn': [torch.randn(2, 77, 768).to('cuda')], 
+#    'c_concat'   : [torch.randn(2, 14, 3, 128, 256).to('cuda')],
+#    'c_seq_len'  : [torch.randn(2).to('cuda')],
+#    'c_seq_pos'  : [torch.randn(2, 14, 2).to('cuda')],
+#    'c_seq_mask' : [torch.randn(2, 14).to('cuda')]
+#}  
+#x = torch.randn(2, 4, 64, 64).to('cuda')
+#model.control_model.latent_size = (2, 320, 64, 64)
+#model.configure_optimizers()
 #model.disable_SD()
 
 #draw_graph(model, input_data=(x, dic), save_graph=True, filename='forwardgraph FULL MODEL')
 
-#logger = ImageLogger(batch_frequency=400, local_dir='first run')
-#trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
-#print(trainer.fit(model, dataloader))
+logger = ImageLogger(batch_frequency=200, local_dir='printing shapes')
+trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
+print(trainer.fit(model, dataloader))
 
 # Calculate dummy gradients
-out = model(x, dic)[0].mean().backward()
-s = dict(list(model.named_parameters()))
-
-for key, item in s.items():
-    print(key)
-    if(item.requires_grad):
-        print('requiresed grad')
-    else: print('does not requiresed grad')
-    if(item.grad is None):
-        print('This is also None')
-    else: print('NOT None')
-
-
-make_dot(out, params=dict(list(model.named_parameters()))).render("backprob graph FULL MODEL", format="png")
-
-grads = {}
-for name, param in model.named_parameters():
-    print(name)
-    if(param.requires_grad):
-        print('!!!!!!')
-        grads[f'{name}'] = param.grad.view(-1)
-print(grads)
+#out = model(x, dic)[0].mean().backward()
+#s = dict(list(model.named_parameters()))
+#
+#for key, item in s.items():
+#    print(key)
+#    if(item.requires_grad):
+#        print('requiresed grad')
+#    else: print('does not requiresed grad')
+#    if(item.grad is None):
+#        print('This is also None')
+#    else: print('NOT None')
 
 
+#make_dot(out, params=dict(list(model.named_parameters()))).render("backprob graph FULL MODEL", format="png")
+
+#grads = {}
+#for name, param in model.named_parameters():
+#    print(name)
+#    if(param.requires_grad):
+#        print('!!!!!!')
+#        grads[f'{name}'] = param.grad.view(-1)
+#print(grads)
 
 #print(model.training_step(batch, 1))
 #x, dic = model.get_input(batch, 'jpg')
