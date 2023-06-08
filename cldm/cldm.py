@@ -44,40 +44,41 @@ class ControlledUnetModel(UNetModel):
             #print('INPUT SHAPE: ', h.shape, '*'*20)
             for module in self.input_blocks:
                 h = module(h, emb, context)
-                #print('INPUT BLOCK SHAPE: ', h.shape, '*'*20)
+                #print('INPUT BLOCK SHAPE out: ', h.shape, '*'*20)
                 hs.append(h)
-            print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
-            h = self.middle_block(h, emb, context)
-            print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
+            #print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
+        h = self.middle_block(h, emb, context)
+            #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
 
         if control is not None:
             mid_control = control.pop()
-            if self.control_seq=='seq_images':
-                mid_control_resized = torch.nn.functional.interpolate(mid_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
-            h += mid_control_resized
-            print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control_resized.shape, '*'*20)
+            #if self.control_seq=='seq_images':
+            #    mid_control_resized = torch.nn.functional.interpolate(mid_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
+            #h += mid_control_resized
+            h += mid_control
+            #print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control.shape, '*'*20)
 
         for i, module in enumerate(self.output_blocks):
             if only_mid_control or control is None:
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
                 next_layer_control = control.pop()
-                if self.control_seq=='seq_images':
-                    next_layer_control_resized = torch.nn.functional.interpolate(next_layer_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
+                #if self.control_seq=='seq_images':
+                #    next_layer_control_resized = torch.nn.functional.interpolate(next_layer_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
                 temp = hs.pop()
-                print('h shape before cat:', h.shape)
-                print('hs the thing that will be added to control prev block (TEMP): ', temp.shape)
-                print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control_resized.shape, '*'*20)
-                h = torch.cat([h, temp + next_layer_control_resized], dim=1)
-                print('h shape after cat (before input to out block) :', h.shape)
+                #print('h shape before cat:', h.shape)
+                #print('hs input block copy popping (TEMP): ', temp.shape)
+                #print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control.shape, '*'*20)
+                h = torch.cat([h, temp + next_layer_control], dim=1)
+                #print('h shape after cat (before input to out block) :', h.shape)
                                 
             h = module(h, emb, context)
-            print('AFTER OUTPUT BLOCK SHAPE: ', h.shape, '*'*20)
+            #print('AFTER OUTPUT BLOCK SHAPE: ', h.shape, '*'*20)
             #print('CONTROL OUT BLOCK SHAPE: ', next_layer_control_resized.shape, '*'*20)
             
         h = h.type(x.dtype)
         n = self.out(h)
-        print('FINAL BLOCK SHAPE: ', n.shape, '*'*20)
+        #print('FINAL BLOCK SHAPE: ', n.shape, '*'*20)
         return n
 ###############################################################################################################
 class ResNet18(nn.Module):
@@ -86,7 +87,7 @@ class ResNet18(nn.Module):
     """
     def __init__(self, model_channels):
         super().__init__()
-        net = models.resnet18(pretrained = True) #weights = RESNET.WEIGHTS to fix the warning
+        net = models.resnet34(pretrained = True) #weights = RESNET.WEIGHTS to fix the warning
 
         layers_in = list(net.children())[:3]    #remove pooling layer
         layers_out = list(net.children())[4:-2] #remove classifiers
@@ -106,22 +107,87 @@ class ConvAlignBlock(nn.Module):
     def __init__(self,
                 dims,
                 channel_mult,
+                model_channels,
                 control_type='decoder_mid'
                 ):
         super().__init__()
-        self.dims = dict
+        self.dims = dims
         self.channel_mult = channel_mult
+        self.model_channels = model_channels
+        self.control_type = control_type
 
-        if (control_type == 'decoder_mid') or (control_type == 'encoder_mid'):
-            self.num_convs = len(channel_mult) + 1
-        elif control_type == 'mid':
-            self.num_convs = 1
+        #conv layers
+        self.conv_layers = nn.ModuleDict()
+        self.conv_layers['downsample_32'] = conv_nd(self.dims, in_channels=channel_mult[0]*model_channels, out_channels=channel_mult[1]*model_channels, kernel_size=3, padding=1, stride=2)
+        self.conv_layers['BN_downsample_32'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
+        self.conv_layers['ch_reduction_320'] = conv_nd(self.dims, in_channels=channel_mult[1]*model_channels, out_channels=channel_mult[0]*model_channels, kernel_size=1, padding=0, stride=1)
+        self.conv_layers['BN_ch_reduction_320'] = nn.BatchNorm2d(channel_mult[0]*model_channels)
 
-        
+        self.conv_layers['downsample_16'] = conv_nd(self.dims, in_channels=channel_mult[1]*model_channels, out_channels=channel_mult[2]*model_channels, kernel_size=3, padding=1, stride=2)
+        self.conv_layers['BN_downsample_16'] = nn.BatchNorm2d(channel_mult[2]*model_channels)
+        self.conv_layers['ch_reduction_640'] = conv_nd(self.dims, in_channels=channel_mult[2]*model_channels, out_channels=channel_mult[1]*model_channels, kernel_size=1, padding=0, stride=1)
+        self.conv_layers['BN_ch_reduction_640'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
 
+        self.conv_layers['downsample_8'] = conv_nd(self.dims, in_channels=channel_mult[2]*model_channels, out_channels=channel_mult[3]*model_channels, kernel_size=3, padding=1, stride=2)     
+        self.conv_layers['BN_downsample_8'] = nn.BatchNorm2d(channel_mult[3]*model_channels)
+
+        #zero convs for output block
+        self.zero_convs = nn.ModuleList()
+        self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=model_channels))
+        for ch in channel_mult:
+            for _ in range(3):
+                self.zero_convs.append(self.make_zero_conv(in_channels=ch*model_channels, out_channels=ch*model_channels))
+
+        if control_type == 'mid':
+            self.zero_conv_middle = self.make_zero_conv(in_channels=channel_mult[-1]*model_channels, out_channels=channel_mult[-1]*model_channels)
+    
     def make_zero_conv(self, in_channels, out_channels):
         return zero_module(conv_nd(self.dims, in_channels, out_channels, 1, padding=0))
+
+    def sort_list(self, List):
+        List.sort()
+        return List
     
+    def forward(self, z):
+        if self.control_type == 'mid':
+            z = nn.functional.silu(self.conv_layers['BN_downsample_32'](self.conv_layers['downsample_32'](z)))
+            z = nn.functional.silu(self.conv_layers['BN_downsample_16'](self.conv_layers['downsample_16'](z)))
+            z = nn.functional.silu(self.conv_layers['BN_downsample_8'](self.conv_layers['downsample_8'](z)))
+            outs = [self.zero_conv_middle(z)]
+
+        elif (self.control_type == 'decoder_mid') or (self.control_type == 'encoder_mid'):
+            outs = {}
+
+            outs[0] = self.zero_convs[0](z)
+            outs[1] = self.zero_convs[1](z)
+            outs[2] = self.zero_convs[2](z)
+
+            z = nn.functional.silu(self.conv_layers['BN_downsample_32'](self.conv_layers['downsample_32'](z)))
+            outs[4] = self.zero_convs[4](z)
+            outs[5] = self.zero_convs[5](z)
+
+            outs[3] = self.zero_convs[3](nn.functional.silu(self.conv_layers['BN_ch_reduction_320'](self.conv_layers['ch_reduction_320'](z))))
+            
+            z = nn.functional.silu(self.conv_layers['BN_downsample_16'](self.conv_layers['downsample_16'](z)))
+            outs[7] =self.zero_convs[7](z)
+            outs[8] =self.zero_convs[8](z)
+
+            outs[6] = self.zero_convs[6](nn.functional.silu(self.conv_layers['BN_ch_reduction_640'](self.conv_layers['ch_reduction_640'](z))))
+            
+            z = nn.functional.silu(self.conv_layers['BN_downsample_8'](self.conv_layers['downsample_8'](z)))
+            outs[9] = self.zero_convs[9](z)
+            outs[10] = self.zero_convs[10](z)
+            outs[11] = self.zero_convs[11](z)
+            outs[12] = self.zero_convs[12](z)
+            
+            outs = [i[1] for i in sorted(list(outs.items()))]
+        
+        if self.control_type == 'encoder_mid': outs.reverse()
+
+        #for x in outs: print(x.shape)
+        return outs
+        
+
 class ControlSeq(nn.Module):
     """
     ControlSeq expects a dict input with sequence data, it'll transform the sequence into a 
@@ -157,14 +223,16 @@ class ControlSeq(nn.Module):
         self.device = device
         
         self.backbone_base = ResNet18(model_channels) 
+        self.conv_align_block = ConvAlignBlock(dims, channel_mult, model_channels)
         
-        self.zero_convs = nn.ModuleList()
+        #self.zero_convs = nn.ModuleList()
+#
+        ##TODO: to be changed when determing how to influence the unet, rn it is applied to the decoder which has 13 blocks (control_block = 'decoder' in .yaml file)
+        #self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=model_channels))
+        #for ch in self.channel_mult:
+        #    for _ in range(3):
+        #        self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=ch*model_channels))
 
-        #TODO: to be changed when determing how to influence the unet, rn it is applied to the decoder which has 13 blocks (control_block = 'decoder' in .yaml file)
-        self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=model_channels))
-        for ch in self.channel_mult:
-            for _ in range(3):
-                self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=ch*model_channels))
     
     def log_polar_transform(self, x:str):
         #TODO: kornia or some way to implement log transformation ... working on it
@@ -247,11 +315,11 @@ class ControlSeq(nn.Module):
         #          self.latent_size[3]),
         #    mode="bilinear")
 
-        outs = []
-        for zero_conv in self.zero_convs:
-            outs.append(zero_conv(feature_map))
+        #outs = []
+        #for zero_conv in self.zero_convs:
+        #    outs.append(zero_conv(feature_map))
 
-        return outs
+        return self.conv_align_block(feature_map)
 #############################################################################################################
 class ControlNet(nn.Module):
     def __init__(

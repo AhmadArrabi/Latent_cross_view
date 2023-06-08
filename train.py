@@ -6,6 +6,7 @@ from CVUSA_dataset import MyDataset
 from cldm.logger import ImageLogger
 from cldm.model import create_model, load_state_dict
 import argparse
+from VIGOR_dataset import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Configs
-    resume_path = './models/control_sd15_ini.ckpt'
+    resume_path = './models/control_sd15_ini_2.ckpt'
     batch_size = opt.batch_size
     logger_freq = opt.logger_freq
     learning_rate = opt.lr
@@ -31,16 +32,16 @@ if __name__ == "__main__":
     min_epoch, max_epoch = opt.min_epoch, opt.max_epoch
 
     # First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-    model = create_model('./models/cldm_v15.yaml').cpu()
+    model = create_model('./models/cldm_v15_2.yaml').cpu()
     model.load_state_dict(load_state_dict(resume_path, location='cpu'))
     model.learning_rate = learning_rate
     model.sd_locked = sd_locked
     model.only_mid_control = only_mid_control
 
     # Misc
-    dataset = MyDataset(mode="train")
-    dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=True)
-    logger = ImageLogger(batch_frequency=logger_freq)
+    dataset = VIGOR(mode="train", same_area=True)
+    dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=False)
+    logger = ImageLogger(batch_frequency=logger_freq, local_dir='adding conv block')
     trainer = pl.Trainer(gpus=gpu, precision=32, callbacks=[logger], strategy="ddp", min_epochs=min_epoch, max_epochs=max_epoch)
 
     # Train!

@@ -18,13 +18,13 @@ from torchview import draw_graph
 resume_path = './models/control_sd15_ini_2.ckpt'
 model = create_model('./models/cldm_v15_2.yaml').cpu()
 model.load_state_dict(load_state_dict(resume_path, location='cpu'))
-model.learning_rate = 0.2
+model.learning_rate = 0.001
 model.sd_locked = True
 model.only_mid_control = False
 
 dataset = VIGOR(mode="train", same_area=True)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
-batch = next(iter(dataloader))
+#batch = next(iter(dataloader))
 #batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
 #
 #batch['hint'] = batch['hint'][:,0,:,:,:]
@@ -44,7 +44,7 @@ batch = next(iter(dataloader))
 
 #draw_graph(model, input_data=(x, dic), save_graph=True, filename='forwardgraph FULL MODEL')
 
-logger = ImageLogger(batch_frequency=200, local_dir='printing shapes')
+logger = ImageLogger(batch_frequency=200, local_dir='adding conv block')
 trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
 print(trainer.fit(model, dataloader))
 

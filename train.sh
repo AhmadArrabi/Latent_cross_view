@@ -11,11 +11,11 @@
 
 # training
 python3 -u train.py \
-  --batch_size 4 \
+  --batch_size 2 \
   --lr 1e-5 \
-  --logger_freq 300 \
+  --logger_freq 200 \
   --sd_locked true \
   --only_mid_control false \
-  --gpu 2 \
+  --gpu 1 \
   --min_epoch 1 \
   --max_epoch 8
