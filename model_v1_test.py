@@ -15,16 +15,30 @@ from torchviz import make_dot
 from torchview import draw_graph
 
 #First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-resume_path = './models/control_sd15_ini_2.ckpt'
-model = create_model('./models/cldm_v15_2.yaml').cpu()
-model.load_state_dict(load_state_dict(resume_path, location='cpu'))
-model.learning_rate = 0.001
-model.sd_locked = True
-model.only_mid_control = False
+#resume_path = './models/control_sd15_ini_2.ckpt'
+#model = create_model('./models/cldm_v15_2.yaml').cpu()
+#model.load_state_dict(load_state_dict(resume_path, location='cpu'))
+#model.learning_rate = 0.001
+#model.sd_locked = True
+#model.only_mid_control = False
 
 dataset = VIGOR(mode="train", same_area=True)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
-#batch = next(iter(dataloader))
+batch = next(iter(dataloader))
+
+#transforms.ToPILImage()(batch['hint'][0,0,]).save('first1_seq_sample_5.png')
+#transforms.ToPILImage()(batch['hint'][0,1,]).save('first2_seq_sample_5.png')
+#transforms.ToPILImage()(batch['hint'][0,2,]).save('first3_seq_sample_5.png')
+#transforms.ToPILImage()(batch['hint'][0,3,]).save('first4_seq_sample_5.png')
+#transforms.ToPILImage()(batch['hint'][0,4,]).save('first5_seq_sample_5.png')
+#transforms.ToPILImage()(batch['jpg'][0]).save('aerial_sample_5.png')
+print(batch['len'][0])
+print(batch['delta'][0])
+d=batch['delta'][0]
+m = torch.ones(d[:,0].shape)*320.0
+print(d,m)
+print(m - d[:,1], m + d[:,0])
+
 #batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
 #
 #batch['hint'] = batch['hint'][:,0,:,:,:]
@@ -44,9 +58,9 @@ dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
 
 #draw_graph(model, input_data=(x, dic), save_graph=True, filename='forwardgraph FULL MODEL')
 
-logger = ImageLogger(batch_frequency=200, local_dir='adding conv block')
-trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
-print(trainer.fit(model, dataloader))
+#logger = ImageLogger(batch_frequency=200, local_dir='adding conv block')
+#trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
+#print(trainer.fit(model, dataloader))
 
 # Calculate dummy gradients
 #out = model(x, dic)[0].mean().backward()

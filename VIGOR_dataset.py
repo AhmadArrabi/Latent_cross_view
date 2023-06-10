@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 import torchvision
 import json
 import einops
+from ldm.util import *
 
 class LimitedFoV(object):
     def __init__(self, fov=360.):
@@ -27,7 +28,6 @@ class LimitedFoV(object):
 
         return img_shift[:,:,:fov_index]
 
-
 def input_transform_fov(size, fov):
     return transforms.Compose([
         transforms.Resize(size=tuple(size)),
@@ -37,29 +37,36 @@ def input_transform_fov(size, fov):
         LimitedFoV(fov=fov),
     ])
 
-def input_transform(size, mode):
+def aerial_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
-            #transforms.ColorJitter(0.3, 0.3, 0.3),
-            #transforms.RandomGrayscale(p=0.2),
-            #transforms.RandomPosterize(p=0.2, bits=4),
-            #transforms.GaussianBlur(kernel_size=(1, 5), sigma=(0.1, 5)),
             transforms.ToTensor(),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406],
-            #                    std=[0.229, 0.224, 0.225]),
         ])
     elif "test" in mode:
         return transforms.Compose([
-            #transforms.Resize(size=tuple(size)),
+            transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406],
-            #                    std=[0.229, 0.224, 0.225]),
+        ])
+    else:
+        raise RuntimeError(f"{mode} not implemented")
+    
+def ground_transform(size, mode):
+    if mode == "train":
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(size=tuple(size)),
+            transforms.ToTensor(),
+        ])
+    elif "test" in mode:
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(size=tuple(size)),
+            transforms.ToTensor(),
         ])
     else:
         raise RuntimeError(f"{mode} not implemented")
 
-# Same loader from VIGOR, modified for pytorch
 class VIGOR(torch.utils.data.Dataset):
     def __init__(self, mode = 'train', root = '/gpfs2/scratch/xzhang31/VIGOR', same_area=True, args=None):
         super(VIGOR, self).__init__()
@@ -76,11 +83,11 @@ class VIGOR(torch.utils.data.Dataset):
         # The below size is temporary should check later
         self.sat_size = [512, 512]#[320, 320]
         self.sat_size_default = [320, 320]
-        self.grd_size = [128, 256]#[1024, 2048]#[128, 512]
+        self.grd_size = [512, 512]#[1024, 2048]
 
         # transforms notice strong aug is added
-        self.transform_ground = input_transform(size=self.grd_size, mode=self.mode)
-        self.transform_aerial = input_transform(size=self.sat_size, mode=self.mode)
+        self.transform_ground = ground_transform(size=self.grd_size, mode=self.mode)
+        self.transform_aerial = aerial_transform(size=self.sat_size, mode=self.mode)
 
         self.same_area = same_area
         label_root = 'splits__corrected'
@@ -111,23 +118,22 @@ class VIGOR(torch.utils.data.Dataset):
                 city_dict = json.load(j)
                 for k in city_dict.keys():
                     self.test_list.append(k)
-                self.test_dict = {**self.test_dict, **city_dict}#self.test_dict | city_dict
-
+                self.test_dict = {**self.test_dict, **city_dict}
+    
     def __getitem__(self, index, debug=False):
-        # TODO
-        # Implement random sampled center in aerial images
-        # Implement LS aug (rotate, flip)
-        index=5
+        # TODO: Implement random sampled center in aerial images
+        index=10
         if self.mode == 'train':
-            prompt = 'Photo-realistic aerial-view image with high quality details.'
+            prompt = 'Realistic aerial satellite top view image with high quality details, with buildings, trees, and roads'
             aerial_image_name = self.train_list[index]
-            ground_dict = self.test_dict[aerial_image_name]
+            ground_dict = self.train_dict[aerial_image_name]
 
             temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r')
+            print(os.path.join(self.root, aerial_image_name))
             temp_img = temp_img.convert('RGB')
             
             aerial_image = self.transform_aerial(temp_img)
-            aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
+            #aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
             
             ground_image_list = []
             ground_delta_list = []
@@ -135,7 +141,7 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        Image.open(os.path.join(self.root,k), 'r')
+                        log_polar(Image.open(os.path.join(self.root,k), 'r'))
                     )
                 )
                 ground_delta_list.append([float(v[0]), float(v[1])])
@@ -148,10 +154,6 @@ class VIGOR(torch.utils.data.Dataset):
                     ground_image_list.append(zero_tensor)
                     ground_delta_list.append([0.0, 0.0])
                 
-            # NOTE: ground images were concat on dim 0 so we'll have to reshape them in training
-            #       While satellite images didnt have this as they concat on a new dim 
-            #       e.g., batch.gnd.shape = [4, 42, width, height] 4 samples each has 12 ground images
-            #       batch.sat.shape = [4, 3, width, height], 4 samples each has a sat image
             ground_imgs = torch.cat(ground_image_list, dim=0)
             ground_imgs = ground_imgs.reshape(shape=(self.seq_padding, 3, ground_imgs.shape[1], ground_imgs.shape[2]))
             
