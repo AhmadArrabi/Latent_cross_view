@@ -122,7 +122,6 @@ class VIGOR(torch.utils.data.Dataset):
     
     def __getitem__(self, index, debug=False):
         # TODO: Implement random sampled center in aerial images
-        index=10
         if self.mode == 'train':
             prompt = 'Realistic aerial satellite top view image with high quality details, with buildings, trees, and roads'
             aerial_image_name = self.train_list[index]
