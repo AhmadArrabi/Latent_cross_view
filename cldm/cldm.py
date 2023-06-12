@@ -51,25 +51,25 @@ class ControlledUnetModel(UNetModel):
             #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
 
         if control is not None:
-            mid_control = control.pop()
+            #mid_control = control.pop()
             #if self.control_seq=='seq_images':
             #    mid_control_resized = torch.nn.functional.interpolate(mid_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
             #h += mid_control_resized
-            h += mid_control
+            h += control.pop()
             #print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control.shape, '*'*20)
 
         for i, module in enumerate(self.output_blocks):
             if only_mid_control or control is None:
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
-                next_layer_control = control.pop()
+                #next_layer_control = control.pop()
                 #if self.control_seq=='seq_images':
                 #    next_layer_control_resized = torch.nn.functional.interpolate(next_layer_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
-                temp = hs.pop()
+                #temp = hs.pop()
                 #print('h shape before cat:', h.shape)
                 #print('hs input block copy popping (TEMP): ', temp.shape)
                 #print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control.shape, '*'*20)
-                h = torch.cat([h, temp + next_layer_control], dim=1)
+                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
                 #print('h shape after cat (before input to out block) :', h.shape)
                                 
             h = module(h, emb, context)
@@ -225,15 +225,6 @@ class ControlSeq(nn.Module):
         self.backbone_base = ResNet18(model_channels) 
         self.conv_align_block = ConvAlignBlock(dims, channel_mult, model_channels)
         
-        #self.zero_convs = nn.ModuleList()
-#
-        ##TODO: to be changed when determing how to influence the unet, rn it is applied to the decoder which has 13 blocks (control_block = 'decoder' in .yaml file)
-        #self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=model_channels))
-        #for ch in self.channel_mult:
-        #    for _ in range(3):
-        #        self.zero_convs.append(self.make_zero_conv(in_channels=model_channels, out_channels=ch*model_channels))
-
-    
     def log_polar_transform(self, x:str):
         #TODO: kornia or some way to implement log transformation ... working on it
         pass
@@ -250,16 +241,25 @@ class ControlSeq(nn.Module):
         """
         desired_height = self.latent_size[2]
         desired_width = self.latent_size[3]
+        #print('HINT LATENT BEFORE ANYTHING JUST AFTER THE RESNET: ', hint_latent.shape)
+        #print('DESIRED HEIGHT AND WIDTH IN GEO MAPPING: ', desired_height, desired_width)
 
         vertical_pad = (desired_height - hint_latent.shape[3])//2
         horizontal_pad = (desired_width - hint_latent.shape[4])//2
+        #print('vertical_pad: ', vertical_pad, '*'*20)
+        #print('horizontal_pad: ', horizontal_pad, '*'*20)
 
         hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
+        #print("HINT PADDED SHAPE: ", hint_padded.shape)
         
         # pixel to latent space
-        latent_ratio = self.img_size/desired_height
-        x_shift = (seq_pos[:,:,0]*latent_ratio).round()
-        y_shift = (seq_pos[:,:,1]*-latent_ratio).round()
+        latent_ratio = desired_height/self.img_size
+        x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
+        y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
+        #print('X SHIFT: ', x_shift.shape, '*'*20)
+        #print('Y SHIFT: ', y_shift.shape, '*'*20)
+        #print('X SHIFT: ', x_shift, '*'*20)
+        #print('Y SHIFT: ', y_shift, '*'*20)
         
         affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
         affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
@@ -272,7 +272,7 @@ class ControlSeq(nn.Module):
         hint_shifted = hint_padded.clone()
         for seq in range(self.seq_padding):
             hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
-
+        #print("HINT SHIFTED SHAPE: ", hint_shifted.shape)
         mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
         return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
     
@@ -283,11 +283,6 @@ class ControlSeq(nn.Module):
         seq_mask = cond['c_seq_mask'][0]
         
         #BACKBONE
-        #method1
-        #hint_latent_ = torch.cat([backbone(hint[:,seq,]).unsqueeze(0) for seq, backbone in zip(range(self.seq_padding), self.backbone_block)])
-        #hint_latent = einops.rearrange(hint_latent_, ('seq b c h w -> b seq c h w'))
-
-        #mthod2: maybe more reliable as we split the seq into multi tensors and then concat them instead of direct access with indexing
         splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
         latents = []
         for split in splited_seq:
@@ -298,26 +293,10 @@ class ControlSeq(nn.Module):
         #TODO: apply transformation
 
         #MASKING
-        #method 1:
-        #for sample in range(hint.shape[0]):
-        #    seq_len_sample = seq_len[sample].type(torch.int)
-        #    hint_latent[sample, seq_len_sample:].zero_()
-
-        #method 2:
         hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
         
         #GEOMAPPING
         feature_map = self.geo_mapping(hint_masked, seq_pos)
-        #will be removed probably
-        #resized_feature_map = torch.nn.functional.interpolate(
-        #    feature_map,
-        #    size=(self.latent_size[2],
-        #          self.latent_size[3]),
-        #    mode="bilinear")
-
-        #outs = []
-        #for zero_conv in self.zero_convs:
-        #    outs.append(zero_conv(feature_map))
 
         return self.conv_align_block(feature_map)
 #############################################################################################################

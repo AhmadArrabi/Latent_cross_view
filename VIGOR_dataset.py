@@ -128,12 +128,11 @@ class VIGOR(torch.utils.data.Dataset):
             aerial_image_name = self.train_list[index]
             ground_dict = self.train_dict[aerial_image_name]
 
-            temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r')
-            print(os.path.join(self.root, aerial_image_name))
-            temp_img = temp_img.convert('RGB')
+            temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r').convert('RGB')
+            DELTA_SCALE = self.grd_size[0]/temp_img.size[0] #new/old dimensions, assuming square images (which is a true assumption :)
             
             aerial_image = self.transform_aerial(temp_img)
-            #aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
+            aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
             
             ground_image_list = []
             ground_delta_list = []
@@ -144,7 +143,7 @@ class VIGOR(torch.utils.data.Dataset):
                         log_polar(Image.open(os.path.join(self.root,k), 'r'))
                     )
                 )
-                ground_delta_list.append([float(v[0]), float(v[1])])
+                ground_delta_list.append([-float(v[1])*DELTA_SCALE, -float(v[0])*DELTA_SCALE])
 
             # padding
             if num_g_imgs<=13:
@@ -176,7 +175,10 @@ class VIGOR(torch.utils.data.Dataset):
             ground_dict = self.test_dict[aerial_image_name]
             
             temp_img = Image.open(aerial_image_name)
+            DELTA_SCALE = self.grd_size[0]/temp_img.size[0] #new/old dimensions, assuming square images (which is a true assumption :)
+
             aerial_image = self.transform_aerial(temp_img)
+            aerial_image = einops.rearrange(aerial_image, 'c h w -> h w c')
 
             ground_image_list = []
             ground_delta_list = []
@@ -184,23 +186,22 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        Image.open(os.path.join(self.root,k), 'r')
+                        log_polar(Image.open(os.path.join(self.root,k), 'r'))
                     )
                 )
-                ground_delta_list.append([float(v[0]), float(v[1])])
-
-            ground_imgs = torch.cat(ground_image_list, dim=0)
-            ground_deltas = torch.tensor(ground_delta_list)
+                ground_delta_list.append([-float(v[1])*DELTA_SCALE, -float(v[0])*DELTA_SCALE])
 
             # padding
-            if len(ground_image_list)<=13:
-                zero_tensor = torch.zeros_like(ground_image_list[0])
-                remaining_dummy_tensors = self.seq_padding - len(ground_image_list)
+            if num_g_imgs<=13:
+                zero_tensor = torch.zeros(ground_image_list[0].shape)
+                remaining_dummy_tensors =self.seq_padding - num_g_imgs
                 for i in range(remaining_dummy_tensors):
                     ground_image_list.append(zero_tensor)
-                    ground_delta_list.append(0.0)
+                    ground_delta_list.append([0.0, 0.0])
                 
             ground_imgs = torch.cat(ground_image_list, dim=0)
+            ground_imgs = ground_imgs.reshape(shape=(self.seq_padding, 3, ground_imgs.shape[1], ground_imgs.shape[2]))
+
             ground_deltas = torch.tensor(ground_delta_list)
 
             mask = torch.zeros(self.seq_padding)

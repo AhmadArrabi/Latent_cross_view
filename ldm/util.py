@@ -262,14 +262,14 @@ def polar_linear(img, o=None, r=None, output=None, order=1, cont=0):
         output = np.expand_dims(map_coordinates(img[:,:,c], (rs, ts), order=order), axis=-1)
         if c==0: output2 = output
         else: output2 = np.uint8(np.concatenate((output2,output), axis=-1))
-    
+    output2 = np.rot90(output2, k=3)
     return output2
 
 
 def log_polar(signal):
-    signal = signal.crop((0, int(signal.size[1]*0.4), signal.size[0], signal.size[1]))
+    signal = signal.crop((0, int(signal.size[1]*0.38), signal.size[0], signal.size[1]))
     signal = ImageOps.flip(signal)
-    
+
     height = signal.height  # Height of polar transformed aerial image
     width = signal.width    # Width of polar transformed aerial image
     
