@@ -30,7 +30,6 @@ class ImageLogger(Callback):
     def log_local(self, save_dir, split, images, global_step, current_epoch, batch_idx):
         root = os.path.join(save_dir, self.local_dir, split)
         for k in images:
-            print(k)
             grid = torchvision.utils.make_grid(images[k], nrow=2)
             if self.rescale:
                 grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
@@ -59,6 +58,7 @@ class ImageLogger(Callback):
 
             for k in images:
                 N = min(images[k].shape[0], self.max_images)
+                #print('N=**********',N)
                 images[k] = images[k][:N]
                 if isinstance(images[k], torch.Tensor):
                     images[k] = images[k].detach().cpu()

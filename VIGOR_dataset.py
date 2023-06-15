@@ -42,11 +42,15 @@ def aerial_transform(size, mode):
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
+            transforms.Normalize(mean=[.5,.5,.5],
+                       std=[.5,.5,.5])
         ])
     elif "test" in mode:
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
+            transforms.Normalize(mean=[.5,.5,.5],
+                        std=[.5,.5,.5])
         ])
     else:
         raise RuntimeError(f"{mode} not implemented")
@@ -54,21 +58,25 @@ def aerial_transform(size, mode):
 def ground_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
-            transforms.ToPILImage(),
+            #transforms.ToPILImage(),
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
+            transforms.Normalize(mean=[.5,.5,.5],
+                        std=[.5,.5,.5])
         ])
     elif "test" in mode:
         return transforms.Compose([
-            transforms.ToPILImage(),
+            #transforms.ToPILImage(),
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
+            transforms.Normalize(mean=[.5,.5,.5],
+                        std=[.5,.5,.5])
         ])
     else:
         raise RuntimeError(f"{mode} not implemented")
 
 class VIGOR(torch.utils.data.Dataset):
-    def __init__(self, mode = 'train', root = '/gpfs2/scratch/xzhang31/VIGOR', same_area=True, args=None):
+    def __init__(self, mode = 'train', root = '/gpfs3/scratch/aarrabi/VIGOR', same_area=True, args=None):
         super(VIGOR, self).__init__()
 
         self.args = args
@@ -121,13 +129,14 @@ class VIGOR(torch.utils.data.Dataset):
                 self.test_dict = {**self.test_dict, **city_dict}
     
     def __getitem__(self, index, debug=False):
-        # TODO: Implement random sampled center in aerial images
         if self.mode == 'train':
             prompt = 'Realistic aerial satellite top view image with high quality details, with buildings, trees, and roads'
             aerial_image_name = self.train_list[index]
             ground_dict = self.train_dict[aerial_image_name]
 
-            temp_img = Image.open(os.path.join(self.root, aerial_image_name), 'r').convert('RGB')
+            aerial_root = '/gpfs3/scratch/xzhang31/VIGOR'
+            temp_img = Image.open(os.path.join(aerial_root, aerial_image_name), 'r').convert('RGB')
+            #print(temp_img.size[0], '*'*80)
             DELTA_SCALE = self.grd_size[0]/temp_img.size[0] #new/old dimensions, assuming square images (which is a true assumption :)
             
             aerial_image = self.transform_aerial(temp_img)
@@ -139,7 +148,8 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        log_polar(Image.open(os.path.join(self.root,k), 'r'))
+                        Image.open(os.path.join(self.root,k), 'r').convert('RGB')
+                        #log_polar(Image.open(os.path.join(self.root,k), 'r'))
                     )
                 )
                 ground_delta_list.append([-float(v[1])*DELTA_SCALE, -float(v[0])*DELTA_SCALE])
@@ -185,7 +195,7 @@ class VIGOR(torch.utils.data.Dataset):
             for k,v in ground_dict.items():
                 ground_image_list.append(
                     self.transform_ground(
-                        log_polar(Image.open(os.path.join(self.root,k), 'r'))
+                        Image.open(os.path.join(self.root,k), 'r')
                     )
                 )
                 ground_delta_list.append([-float(v[1])*DELTA_SCALE, -float(v[0])*DELTA_SCALE])

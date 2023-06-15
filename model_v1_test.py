@@ -15,8 +15,8 @@ from torchviz import make_dot
 from torchview import draw_graph
 
 #First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-resume_path = './models/control_sd15_ini_2.ckpt'
-model = create_model('./models/cldm_v15_2.yaml').cpu()
+resume_path = './models/control_sd15_ini_3.ckpt'
+model = create_model('./models/cldm_v15_3.yaml').cpu()
 model.load_state_dict(load_state_dict(resume_path, location='cpu'))
 model.learning_rate = 0.001
 model.sd_locked = True
@@ -56,8 +56,8 @@ dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
 
 #draw_graph(model, input_data=(x, dic), save_graph=True, filename='forwardgraph FULL MODEL')
 
-logger = ImageLogger(batch_frequency=200, local_dir='PRINTING STUFF')
-trainer = pl.Trainer(gpus=1, precision=32, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
+logger = ImageLogger(batch_frequency=50, local_dir='PRINTING STUFF')
+trainer = pl.Trainer(gpus=1, precision=16, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
 print(trainer.fit(model, dataloader))
 
 # Calculate dummy gradients

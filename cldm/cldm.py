@@ -51,10 +51,6 @@ class ControlledUnetModel(UNetModel):
             #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
 
         if control is not None:
-            #mid_control = control.pop()
-            #if self.control_seq=='seq_images':
-            #    mid_control_resized = torch.nn.functional.interpolate(mid_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
-            #h += mid_control_resized
             h += control.pop()
             #print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control.shape, '*'*20)
 
@@ -62,14 +58,10 @@ class ControlledUnetModel(UNetModel):
             if only_mid_control or control is None:
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
-                #next_layer_control = control.pop()
-                #if self.control_seq=='seq_images':
-                #    next_layer_control_resized = torch.nn.functional.interpolate(next_layer_control, size=(h.shape[2], h.shape[3]), mode="bilinear") 
-                #temp = hs.pop()
+                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
                 #print('h shape before cat:', h.shape)
                 #print('hs input block copy popping (TEMP): ', temp.shape)
                 #print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control.shape, '*'*20)
-                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
                 #print('h shape after cat (before input to out block) :', h.shape)
                                 
             h = module(h, emb, context)
@@ -143,10 +135,6 @@ class ConvAlignBlock(nn.Module):
     
     def make_zero_conv(self, in_channels, out_channels):
         return zero_module(conv_nd(self.dims, in_channels, out_channels, 1, padding=0))
-
-    def sort_list(self, List):
-        List.sort()
-        return List
     
     def forward(self, z):
         if self.control_type == 'mid':
@@ -157,6 +145,28 @@ class ConvAlignBlock(nn.Module):
 
         elif (self.control_type == 'decoder_mid') or (self.control_type == 'encoder_mid'):
             outs = {}
+
+            #outs[0] = z
+            #outs[1] = z
+            #outs[2] = z
+#
+            #z = nn.functional.silu(self.conv_layers['BN_downsample_32'](self.conv_layers['downsample_32'](z)))
+            #outs[4] = z
+            #outs[5] = z
+#
+            #outs[3] = nn.functional.silu(self.conv_layers['BN_ch_reduction_320'](self.conv_layers['ch_reduction_320'](z)))
+            #
+            #z = nn.functional.silu(self.conv_layers['BN_downsample_16'](self.conv_layers['downsample_16'](z)))
+            #outs[7] = z
+            #outs[8] = z
+#
+            #outs[6] = nn.functional.silu(self.conv_layers['BN_ch_reduction_640'](self.conv_layers['ch_reduction_640'](z)))
+            #
+            #z = nn.functional.silu(self.conv_layers['BN_downsample_8'](self.conv_layers['downsample_8'](z)))
+            #outs[9] =  z
+            #outs[10] = z
+            #outs[11] = z
+            #outs[12] = z
 
             outs[0] = self.zero_convs[0](z)
             outs[1] = self.zero_convs[1](z)
@@ -222,7 +232,7 @@ class ControlSeq(nn.Module):
         self.dims = dims 
         self.device = device
         
-        self.backbone_base = ResNet18(model_channels) 
+        self.backbone_base = ResNet18(model_channels) #TODO: convnext
         self.conv_align_block = ConvAlignBlock(dims, channel_mult, model_channels)
         
     def log_polar_transform(self, x:str):
@@ -254,8 +264,10 @@ class ControlSeq(nn.Module):
         
         # pixel to latent space
         latent_ratio = desired_height/self.img_size
-        x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
-        y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
+        x_shift = (seq_pos[:,:,0]*latent_ratio).round()
+        y_shift = (seq_pos[:,:,1]*latent_ratio).round()
+        #x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
+        #y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
         #print('X SHIFT: ', x_shift.shape, '*'*20)
         #print('Y SHIFT: ', y_shift.shape, '*'*20)
         #print('X SHIFT: ', x_shift, '*'*20)
@@ -598,21 +610,28 @@ class ControlLDM(LatentDiffusion):
         """
         # latent z 'jpg' , CLIP embedding of 'txt' = LDM.get_input()
         x, c = super().get_input(batch, self.first_stage_key, *args, **kwargs) 
-        self.control_model.latent_size = x.shape
+        
         control = batch[self.control_key] #hint (seq of gnd imgs)
         if bs is not None:
             control = control[:bs]
         control = control.to(self.device)
 
-        if self.control_seq=='single_image':
+        if self.control_seq=='single_image': #standard controlNet
             control = einops.rearrange(control, 'b h w c -> b c h w')
             control = control.to(memory_format=torch.contiguous_format).float()
        
             return x, dict(c_crossattn=[c], c_concat=[control])
-        elif self.control_seq=='seq_images':
+        
+        else: #get the dict of gnd images seq
+            if self.control_seq=='seq_images':
+                self.control_model.latent_size = x.shape
+            elif self.control_seq=='seq_images_one_cond':
+                self.control_model.input_hint_block.latent_size = x.shape
+
             seq_length = batch[self.control_seq_length]
             seq_position = batch[self.control_seq_position]
             seq_mask = batch[self.control_seq_mask]
+
             if bs is not None:
                 seq_length = seq_length[:bs]
                 seq_position = seq_position[:bs]
@@ -642,8 +661,9 @@ class ControlLDM(LatentDiffusion):
         self.model.diffusion_model.train = disabled_train
         for param in self.model.diffusion_model.input_blocks.parameters():
             param.requires_grad = False
-        for param in self.model.diffusion_model.middle_block.parameters():
-            param.requires_grad = False
+            param = param.detach()
+        #for param in self.model.diffusion_model.middle_block.parameters():
+        #    param.requires_grad = False
 
     def apply_model(self, x_noisy, t, cond, *args, **kwargs):
         """
@@ -657,18 +677,21 @@ class ControlLDM(LatentDiffusion):
         """
         assert isinstance(cond, dict)
 
-        #self.disable_SD()
-        diffusion_model = self.model.diffusion_model #controlledunetmodule
+        self.disable_SD()
+        diffusion_model = self.model.diffusion_model #controlledUnetModule
 
         cond_txt = torch.cat(cond['c_crossattn'], 1) 
 
         if cond['c_concat'] is None:
+            #unconditional
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=None, only_mid_control=self.only_mid_control)
+
         elif self.control_seq=='single_image':
             #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
+
         elif self.control_seq=='seq_images':
             #self.control_model = ControlSeq
             control = self.control_model.forward(cond=cond)
@@ -676,14 +699,14 @@ class ControlLDM(LatentDiffusion):
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of ControlSeq
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
             #print(diffusion_model.named_parameters())
+
         elif self.control_seq=='seq_images_one_cond':
             #self.control_model = ControlNet_seq
-            control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt, cond=cond)
+            control = self.control_model(x=x_noisy, timesteps=t, cond=cond)
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
     
         #s = dict(list(self.named_parameters()))
-#
         #for key, item in s.items():
         #    print(key)
         #    if(item.requires_grad):
@@ -774,37 +797,7 @@ class ControlLDM(LatentDiffusion):
         N = min(z.shape[0], N)
         n_row = min(z.shape[0], n_row)
         log["reconstruction"] = self.decode_first_stage(z)
-        #log["control"] = c["c_concat"][0][:N] * 2.0 - 1.0
-        log["conditioning"] = log_txt_as_img((512, 512), batch[self.cond_stage_key], size=16)
-
-        #if plot_diffusion_rows:
-        #    # get diffusion row
-        #    diffusion_row = list()
-        #    z_start = z[:n_row]
-        #    for t in range(self.num_timesteps):
-        #        if t % self.log_every_t == 0 or t == self.num_timesteps - 1:
-        #            t = repeat(torch.tensor([t]), '1 -> b', b=n_row)
-        #            t = t.to(self.device).long()
-        #            noise = torch.randn_like(z_start)
-        #            z_noisy = self.q_sample(x_start=z_start, t=t, noise=noise)
-        #            diffusion_row.append(self.decode_first_stage(z_noisy))
-#
-        #    diffusion_row = torch.stack(diffusion_row)  # n_log_step, n_row, C, H, W
-        #    diffusion_grid = rearrange(diffusion_row, 'n b c h w -> b n c h w')
-        #    diffusion_grid = rearrange(diffusion_grid, 'b n c h w -> (b n) c h w')
-        #    diffusion_grid = make_grid(diffusion_grid, nrow=diffusion_row.shape[0])
-        #    log["diffusion_row"] = diffusion_grid
-#
-        #if sample:
-        #    # get denoise row
-        #    samples, z_denoise_row = self.sample_log(cond={"c_concat": [c_cat], "c_crossattn": [c_cross]},
-        #                                             batch_size=N, ddim=use_ddim,
-        #                                             ddim_steps=ddim_steps, eta=ddim_eta)
-        #    x_samples = self.decode_first_stage(samples)
-        #    log["samples"] = x_samples
-        #    if plot_denoise_rows:
-        #        denoise_grid = self._get_denoise_row_from_list(z_denoise_row)
-        #        log["denoise_row"] = denoise_grid
+        log["aerial"] = einops.rearrange(batch["jpg"], 'b h w c -> b c h w')
 
         if unconditional_guidance_scale > 1.0:
             uc_full = c
@@ -825,8 +818,13 @@ class ControlLDM(LatentDiffusion):
     def sample_log(self, cond, batch_size, ddim, ddim_steps, **kwargs):
         ddim_sampler = DDIMSampler(self)
 
-        #b, c, h, w = cond["c_concat"][0].shape
-        h, w = self.control_model.img_size, self.control_model.img_size
+        if self.control_seq=='single_image':
+            b, c, h, w = cond["c_concat"][0].shape
+        elif self.control_seq=='seq_images':
+            h, w = self.control_model.img_size, self.control_model.img_size
+        elif self.control_seq=='seq_images_one_cond':
+            h, w = self.control_model.input_hint_block.img_size, self.control_model.input_hint_block.img_size
+
         shape = (self.channels, h // 8, w // 8)
         samples, intermediates = ddim_sampler.sample(ddim_steps, batch_size, shape, cond, verbose=False, **kwargs)
         return samples, intermediates
@@ -851,7 +849,7 @@ class ControlLDM(LatentDiffusion):
             self.control_model = self.control_model.cpu()
             self.first_stage_model = self.first_stage_model.cuda()
             self.cond_stage_model = self.cond_stage_model.cuda()
-#############################################FUTURE PLAN################################################################
+##########################################################################################################
 class ControlNet_seq(ControlNet):
     """
     replica of ControlNet but takes condition as sequence and applies the geomapping
@@ -861,10 +859,11 @@ class ControlNet_seq(ControlNet):
         super().__init__(image_size, in_channels, model_channels, hint_channels, num_res_blocks, attention_resolutions, dropout, channel_mult, conv_resample, dims, use_checkpoint, use_fp16, num_heads, num_head_channels, num_heads_upsample, use_scale_shift_norm, resblock_updown, use_new_attention_order, use_spatial_transformer, transformer_depth, context_dim, n_embed, legacy, disable_self_attentions, num_attention_blocks, disable_middle_self_attn, use_linear_in_transformer)
         self.input_hint_block = instantiate_from_config(hint_block_config)
 
-    def forward(self, x, hint, timesteps, context, cond, **kwargs):
+    def forward(self, x, timesteps, cond, **kwargs):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
         emb = self.time_embed(t_emb)
         guided_hint = self.input_hint_block(cond=cond)
+        context = torch.cat(cond['c_crossattn'], 1) 
 
         outs = []
 
@@ -888,15 +887,80 @@ class ControlNet_seq(ControlNet):
         outs.append(self.middle_block_out(h, emb, context))
 
         return outs
+    
+class ResNet34_zero_conv(nn.Module):
+    """
+    thanks: https://gitlab.com/vail-uvm/geodtr
+    """
+    def __init__(self, model_channels):
+        super().__init__()
+        net = models.resnet34(pretrained = True) #weights = RESNET.WEIGHTS to fix the warning
 
+        layers_in = list(net.children())[:3]    #remove pooling layer
+        layers_out = list(net.children())[4:-2] #remove classifiers
 
-class ControlSeq_condition(ControlSeq):
-    def __init__(self, seq_padding, model_channels, channel_mult, transformation, img_size=512, dims=2, device='cuda'):
-        super().__init__(seq_padding, model_channels, channel_mult, transformation, img_size, dims, device)
+        #add last conv layer so the channel width becomes flexible (rn it matches the SD model, model_channels = 320)
+        layers_conv = [nn.Sequential(zero_module(conv_nd(2 , in_channels=layers_out[-1][-1].conv2.in_channels, out_channels=model_channels, kernel_size=3, padding=1)))] 
+        self.layers = nn.Sequential(*layers_in, *layers_out, *layers_conv)
 
+    def forward(self, x):
+        return self.layers(x)
+    
+class ControlSeq_condition(nn.Module):
+    def __init__(
+            self,
+            seq_padding,
+            model_channels,
+            channel_mult,
+            transformation,
+            img_size=512,
+            dims=2,
+            device='cuda'            
+        ):
+        super().__init__()
+
+        self.latent_size = None
+        self.seq_padding = seq_padding
+        self.model_channels = model_channels
+        self.channel_mult = channel_mult
+        self.transformation = transformation
+        self.img_size = img_size
+        self.dims = dims 
+        self.device = device
+        
+        self.backbone_base = ResNet34_zero_conv(model_channels) 
+        
+    def geo_mapping(self, hint_latent, seq_pos):
+        desired_height = self.latent_size[2]
+        desired_width = self.latent_size[3]
+
+        vertical_pad = (desired_height - hint_latent.shape[3])//2
+        horizontal_pad = (desired_width - hint_latent.shape[4])//2
+
+        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
+        
+        # pixel to latent space
+        latent_ratio = desired_height/self.img_size
+        x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
+        y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
+        
+        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
+
+        affine_matrix[:,:,0,-1] = x_shift
+        affine_matrix[:,:,1,-1] = y_shift
+        
+        #we can do the same as before spliting the tensor and then cat instead of indexing
+        hint_shifted = hint_padded.clone()
+        for seq in range(self.seq_padding):
+            hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
+        
+        mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
+        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
+    
     def forward(self, cond):
         hint = cond['c_concat'][0]
-        seq_len = cond['c_seq_len'][0] 
         seq_pos = cond['c_seq_pos'][0]
         seq_mask = cond['c_seq_mask'][0]
         
@@ -915,11 +979,5 @@ class ControlSeq_condition(ControlSeq):
         
         #GEOMAPPING
         feature_map = self.geo_mapping(hint_masked, seq_pos)
-        #will be removed probably
-        resized_feature_map = torch.nn.functional.interpolate(
-            feature_map,
-            size=(self.latent_size[2],
-                  self.latent_size[3]),
-            mode="bilinear")
-        
-        return resized_feature_map
+
+        return feature_map

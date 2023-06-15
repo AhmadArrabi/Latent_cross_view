@@ -22,7 +22,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Configs
-    resume_path = './models/control_sd15_ini_2.ckpt'
+    resume_path = './models/control_sd15_ini_zeroConv_unFreeze.ckpt'
     batch_size = opt.batch_size
     logger_freq = opt.logger_freq
     learning_rate = opt.lr
@@ -41,8 +41,8 @@ if __name__ == "__main__":
     # Misc
     dataset = VIGOR(mode="train", same_area=True)
     dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=False)
-    logger = ImageLogger(batch_frequency=logger_freq, local_dir='adding conv block')
-    trainer = pl.Trainer(gpus=gpu, precision=32, callbacks=[logger], strategy="ddp", min_epochs=min_epoch, max_epochs=max_epoch)
+    logger = ImageLogger(batch_frequency=logger_freq, local_dir='WITH ZERO CONV, unFREEZE')
+    trainer = pl.Trainer(gpus=gpu, precision=16, callbacks=[logger], strategy="ddp", min_epochs=min_epoch, max_epochs=max_epoch)
 
     # Train!
     trainer.fit(model, dataloader)
