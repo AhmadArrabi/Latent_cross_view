@@ -30,44 +30,64 @@ class ControlledUnetModel(UNetModel):
     TODO: experiment with different methods of conditioning, e.g., condition decoder, encoder, 
     middle block, or any other part of the Unet 
     """
-    def __init__(self, image_size, in_channels, model_channels, control_seq, control_block, out_channels, num_res_blocks, attention_resolutions, dropout=0, channel_mult=..., conv_resample=True, dims=2, num_classes=None, use_checkpoint=False, use_fp16=False, num_heads=-1, num_head_channels=-1, num_heads_upsample=-1, use_scale_shift_norm=False, resblock_updown=False, use_new_attention_order=False, use_spatial_transformer=False, transformer_depth=1, context_dim=None, n_embed=None, legacy=True, disable_self_attentions=None, num_attention_blocks=None, disable_middle_self_attn=False, use_linear_in_transformer=False):
+    def __init__(self, image_size, in_channels, model_channels, control_seq, out_channels, num_res_blocks, attention_resolutions, dropout=0, channel_mult=..., conv_resample=True, dims=2, num_classes=None, use_checkpoint=False, use_fp16=False, num_heads=-1, num_head_channels=-1, num_heads_upsample=-1, use_scale_shift_norm=False, resblock_updown=False, use_new_attention_order=False, use_spatial_transformer=False, transformer_depth=1, context_dim=None, n_embed=None, legacy=True, disable_self_attentions=None, num_attention_blocks=None, disable_middle_self_attn=False, use_linear_in_transformer=False, control_type='decoder_mid'):
         super().__init__(image_size, in_channels, model_channels, out_channels, num_res_blocks, attention_resolutions, dropout, channel_mult, conv_resample, dims, num_classes, use_checkpoint, use_fp16, num_heads, num_head_channels, num_heads_upsample, use_scale_shift_norm, resblock_updown, use_new_attention_order, use_spatial_transformer, transformer_depth, context_dim, n_embed, legacy, disable_self_attentions, num_attention_blocks, disable_middle_self_attn, use_linear_in_transformer)
         self.control_seq = control_seq
-        self.control_block = control_block 
+        self.control_type = control_type
 
     def forward(self, x, timesteps=None, context=None, control=None, only_mid_control=False, **kwargs):
         hs = []
-        with torch.no_grad():
+
+        if self.control_type == 'decoder_mid':
+            with torch.no_grad():
+                t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
+                emb = self.time_embed(t_emb)
+                h = x.type(self.dtype)
+                #print('INPUT SHAPE: ', h.shape, '*'*20)
+                for module in self.input_blocks:
+                    h = module(h, emb, context)
+                    #print('INPUT BLOCK SHAPE out: ', h.shape, '*'*20)
+                    hs.append(h)
+                #print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
+            h = self.middle_block(h, emb, context)
+                #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
+
+            if control is not None:
+                h += control.pop()
+                #print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control.shape, '*'*20)
+
+            for i, module in enumerate(self.output_blocks):
+                if only_mid_control or control is None:
+                    h = torch.cat([h, hs.pop()], dim=1)
+                else:
+                    h = torch.cat([h, hs.pop() + control.pop()], dim=1)
+                    #print('h shape before cat:', h.shape)
+                    #print('hs input block copy popping (TEMP): ', temp.shape)
+                    #print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control.shape, '*'*20)
+                    #print('h shape after cat (before input to out block) :', h.shape)
+
+                h = module(h, emb, context)
+                #print('AFTER OUTPUT BLOCK SHAPE: ', h.shape, '*'*20)
+                #print('CONTROL OUT BLOCK SHAPE: ', next_layer_control_resized.shape, '*'*20)
+
+        elif self.control_type == 'encoder_mid':
             t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
             emb = self.time_embed(t_emb)
             h = x.type(self.dtype)
-            #print('INPUT SHAPE: ', h.shape, '*'*20)
+
             for module in self.input_blocks:
                 h = module(h, emb, context)
-                #print('INPUT BLOCK SHAPE out: ', h.shape, '*'*20)
+                h += control.pop()
                 hs.append(h)
-            #print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
-        h = self.middle_block(h, emb, context)
-            #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
-
-        if control is not None:
-            h += control.pop()
-            #print('CONTROL AFTER MIDDLE BLOCK SHAPE: ', mid_control.shape, '*'*20)
-
-        for i, module in enumerate(self.output_blocks):
-            if only_mid_control or control is None:
-                h = torch.cat([h, hs.pop()], dim=1)
-            else:
-                h = torch.cat([h, hs.pop() + control.pop()], dim=1)
-                #print('h shape before cat:', h.shape)
-                #print('hs input block copy popping (TEMP): ', temp.shape)
-                #print('CONTROL OUT BLOCK SHAPE (ADDED TO TEMP): ', next_layer_control.shape, '*'*20)
-                #print('h shape after cat (before input to out block) :', h.shape)
-                                
-            h = module(h, emb, context)
-            #print('AFTER OUTPUT BLOCK SHAPE: ', h.shape, '*'*20)
-            #print('CONTROL OUT BLOCK SHAPE: ', next_layer_control_resized.shape, '*'*20)
             
+            h = self.middle_block(h, emb, context)
+            if control is not None:
+                h += control.pop()
+            
+            for module in self.output_blocks:
+                h = torch.cat([h, hs.pop()], dim=1)
+                h = module(h, emb, context)
+
         h = h.type(x.dtype)
         n = self.out(h)
         #print('FINAL BLOCK SHAPE: ', n.shape, '*'*20)
@@ -584,6 +604,7 @@ class ControlLDM(LatentDiffusion):
                 control_seq_length, 
                 control_seq_position,
                 control_seq_mask,
+                control_type,
                 *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -595,6 +616,8 @@ class ControlLDM(LatentDiffusion):
         self.control_seq_length = control_seq_length
         self.control_seq_position = control_seq_position
         self.control_seq_mask = control_seq_mask
+        self.model.diffusion_model.control_type = control_type
+        self.control_model.conv_align_block.control_type = control_type
 
     @torch.no_grad()
     def get_input(self, batch, k, bs=None, *args, **kwargs):
@@ -677,7 +700,7 @@ class ControlLDM(LatentDiffusion):
         """
         assert isinstance(cond, dict)
 
-        self.disable_SD()
+        #self.disable_SD()
         diffusion_model = self.model.diffusion_model #controlledUnetModule
 
         cond_txt = torch.cat(cond['c_crossattn'], 1) 

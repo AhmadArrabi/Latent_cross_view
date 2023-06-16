@@ -90,7 +90,6 @@ class VIGOR(torch.utils.data.Dataset):
         
         # The below size is temporary should check later
         self.sat_size = [512, 512]#[320, 320]
-        self.sat_size_default = [320, 320]
         self.grd_size = [512, 512]#[1024, 2048]
 
         # transforms notice strong aug is added
