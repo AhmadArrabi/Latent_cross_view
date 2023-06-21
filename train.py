@@ -23,7 +23,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Configs
-    resume_path = './models/control_sd15_ini_zeroConv_unFreeze.ckpt'
+    resume_path = './models/control_sd15_ini_one_cond.ckpt'
     batch_size = opt.batch_size
     logger_freq = opt.logger_freq
     learning_rate = opt.lr
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     exp = opt.exp_name
 
     # First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-    model = create_model('./models/cldm_v15_2.yaml').cpu()
+    model = create_model('./models/cldm_v15_3.yaml').cpu()
     model.load_state_dict(load_state_dict(resume_path, location='cpu'))
     model.learning_rate = learning_rate
     model.sd_locked = sd_locked

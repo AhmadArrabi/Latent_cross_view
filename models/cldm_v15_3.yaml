@@ -13,6 +13,7 @@ model:
     control_seq_length: len
     control_seq_position: delta
     control_seq_mask: mask
+    control_type: decoder_mid
     image_size: 64
     channels: 4
     cond_stage_trainable: false
@@ -38,17 +39,6 @@ model:
         context_dim: 768
         use_checkpoint: True
         legacy: False
-        hint_block_config:
-          target: cldm.cldm.ControlSeq_condition
-          params:
-            seq_padding: 14
-            model_channels: 320
-            channel_mult: [ 1, 2, 4, 4 ]
-            transformation: transformation
-            img_size: 512
-            dims: 2 
-            device: cuda
-
 
     unet_config:
       target: cldm.cldm.ControlledUnetModel
@@ -57,8 +47,6 @@ model:
         in_channels: 4
         out_channels: 4
         model_channels: 320
-        control_seq: seq_images_one_cond
-        control_block: encoder
         attention_resolutions: [ 4, 2, 1 ]
         num_res_blocks: 2
         channel_mult: [ 1, 2, 4, 4 ]

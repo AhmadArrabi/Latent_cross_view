@@ -15,17 +15,34 @@ from torchviz import make_dot
 from torchview import draw_graph
 
 #First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-resume_path = './models/control_sd15_ini_3.ckpt'
-model = create_model('./models/cldm_v15_3.yaml').cpu()
-model.load_state_dict(load_state_dict(resume_path, location='cpu'))
-model.learning_rate = 0.001
+#resume_path = './models/control_sd15_ini.ckpt'
+model = create_model('./models/cldm_v15_2.yaml').to('cuda')
+#model.load_state_dict(load_state_dict(resume_path, location='cuda'))
+model.learning_rate = 0.01
 model.sd_locked = True
 model.only_mid_control = False
+
+for p in model.control_model.named_parameters():
+    print(p[0], p[1].requires_grad)
 
 dataset = VIGOR(mode="train", same_area=True)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
 #batch = next(iter(dataloader))
 
+trainer = pl.Trainer(gpus=1, precision=16, strategy="ddp", min_epochs=1, max_epochs=2)
+print(trainer.fit(model, dataloader))
+
+#model.control_model.latent_size = (2, 320, 64, 64)
+
+#dic = {
+#    'c_crossattn': [torch.randn(2, 77, 768).to('cuda')], 
+#    'c_concat'   : [torch.randn(2, 14, 3, 512, 512).to('cuda')],
+#    'c_seq_len'  : [torch.randn(2).to('cuda')],
+#    'c_seq_pos'  : [torch.randn(2, 14, 2).to('cuda')],
+#    'c_seq_mask' : [torch.randn(2, 14).to('cuda')]
+#} 
+
+#model.control_model(dic)
 #transforms.ToPILImage()(batch['hint'][0,0,]).save('first1_seq_sample_5.png')
 #transforms.ToPILImage()(batch['hint'][0,1,]).save('first2_seq_sample_5.png')
 #transforms.ToPILImage()(batch['hint'][0,2,]).save('first3_seq_sample_5.png')
@@ -42,23 +59,17 @@ dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
 #batch['jpg'] = einops.rearrange(batch['jpg'], 'b c h w -> b h w c')
 #batch['hint'] = batch['hint'][:,0,:,:,:]
 #batch['hint'] = einops.rearrange(batch['hint'], 'b c h w -> b h w c')
-#dic = {
-#    'c_crossattn': [torch.randn(2, 77, 768).to('cuda')], 
-#    'c_concat'   : [torch.randn(2, 14, 3, 128, 256).to('cuda')],
-#    'c_seq_len'  : [torch.randn(2).to('cuda')],
-#    'c_seq_pos'  : [torch.randn(2, 14, 2).to('cuda')],
-#    'c_seq_mask' : [torch.randn(2, 14).to('cuda')]
-#}  
+ 
 #x = torch.randn(2, 4, 64, 64).to('cuda')
-#model.control_model.latent_size = (2, 320, 64, 64)
+
 #model.configure_optimizers()
 #model.disable_SD()
 
 #draw_graph(model, input_data=(x, dic), save_graph=True, filename='forwardgraph FULL MODEL')
 
-logger = ImageLogger(batch_frequency=50, local_dir='PRINTING STUFF')
-trainer = pl.Trainer(gpus=1, precision=16, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
-print(trainer.fit(model, dataloader))
+#logger = ImageLogger(batch_frequency=50, local_dir='PRINTING STUFF')
+#trainer = pl.Trainer(gpus=1, precision=16, callbacks=[logger], strategy="ddp", min_epochs=1, max_epochs=2)
+#print(trainer.fit(model, dataloader))
 
 # Calculate dummy gradients
 #out = model(x, dic)[0].mean().backward()

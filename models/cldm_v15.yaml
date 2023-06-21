@@ -13,6 +13,7 @@ model:
     control_seq_length: len
     control_seq_position: delta
     control_seq_mask: mask
+    control_type: decoder_mid
     image_size: 64
     channels: 4
     cond_stage_trainable: false
@@ -46,8 +47,6 @@ model:
         in_channels: 4
         out_channels: 4
         model_channels: 320
-        control_seq: single_image
-        control_block: encoder
         attention_resolutions: [ 4, 2, 1 ]
         num_res_blocks: 2
         channel_mult: [ 1, 2, 4, 4 ]

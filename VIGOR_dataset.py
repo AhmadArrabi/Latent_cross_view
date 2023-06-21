@@ -172,6 +172,7 @@ class VIGOR(torch.utils.data.Dataset):
             return dict(jpg=aerial_image, 
                         txt=prompt, 
                         hint=ground_imgs, 
+                        #hint=einops.rearrange(ground_imgs[0], 'c h w -> h w c'), 
                         delta=ground_deltas, 
                         len=num_g_imgs,
                         mask = mask)

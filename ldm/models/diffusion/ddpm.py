@@ -917,6 +917,14 @@ class LatentDiffusion(DDPM):
         loss += (self.original_elbo_weight * loss_vlb)
         loss_dict.update({f'{prefix}/loss': loss})
 
+        #print('*'*100)
+        #print(loss_dict)
+        #for k, i in loss_dict.items(): print(i.requires_grad, i.grad)
+        print('*'*100)
+        print(loss)
+        print(loss.requires_grad, loss.grad, loss.is_leaf)
+        print('*'*100)
+
         return loss, loss_dict
 
     def p_mean_variance(self, x, c, t, clip_denoised: bool, return_codebook_ids=False, quantize_denoised=False,
