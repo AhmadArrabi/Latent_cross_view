@@ -58,7 +58,6 @@ def aerial_transform(size, mode):
 def ground_transform(size, mode):
     if mode == "train":
         return transforms.Compose([
-            #transforms.ToPILImage(),
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[.5,.5,.5],
@@ -66,7 +65,6 @@ def ground_transform(size, mode):
         ])
     elif "test" in mode:
         return transforms.Compose([
-            #transforms.ToPILImage(),
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[.5,.5,.5],
@@ -281,21 +279,37 @@ def Lat_Lng(Lat_A, Lng_A, distance=[320*0.114, 320*0.114]):
     delta_lng = np.arccos((C_lng-np.sin(lat_A)*np.sin(lat_A))/np.cos(lat_A)/np.cos(lat_A))
     return np.array([delta_lat * 180. / np.pi, delta_lng * 180. / np.pi])
 
+def tensor_to_image(tensor):
+    tensor = tensor*255
+    tensor = np.array(tensor, dtype=np.uint8)
+    if np.ndim(tensor)>3:
+        assert tensor.shape[0] == 1
+        tensor = tensor[0]
+    return Image.fromarray(tensor)
+
 if __name__ == "__main__":
+
     dataset = VIGOR(mode="train", same_area=True)
-    # dataset = VIGOR(mode="test_query",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
-    # dataset = VIGOR(mode="test_reference",root = '/mnt/VIGOR/', same_area=True, print_bool=True)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=1)
+    
     idx = 0
     for i in dataloader:
-        #torchvision.utils.save_image(i['jpg'], "aerial.png")
-        #num_channel = i['hint'].shape[1]
-        #num_images = int(num_channel) // 3
-        #grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
-        #torchvision.utils.save_image(i['hint'][0], f"grd{idx}.png")
-        print(idx, "#"*30)
-        print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
-               '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])
-        if idx >= 1:
-            break
         idx += 1
+        if idx == 10:
+            tensor_to_image(i['jpg'][0]).save("aerial.png")
+            grounds = torch.split(i['hint'][0], 1)
+            
+            for num in range(i['len'][0]):
+                ass = einops.rearrange(grounds[num].squeeze(), 'c h w -> h w c')
+                tensor_to_image(ass).save(f"ground_{num}.png")
+
+            #num_channel = i['hint'].shape[1]
+            #num_images = int(num_channel) // 3
+            #grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
+            #torchvision.utils.save_image(i['hint'][0], f"grd{idx}.png")
+            print(idx, "#"*30)
+            print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
+                   '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])
+            print(i['delta'][0])
+            break
+            

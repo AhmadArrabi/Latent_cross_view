@@ -24,7 +24,7 @@ def get_node_name(name, parent_name):
     return True, name[len(parent_name):]
 
 
-model = create_model(config_path='./models/cldm_v15_3.yaml')
+model = create_model(config_path='./models/cldm_v15_2.yaml')
 
 pretrained_weights = torch.load(input_path)
 if 'state_dict' in pretrained_weights:
@@ -33,6 +33,20 @@ if 'state_dict' in pretrained_weights:
 scratch_dict = model.state_dict()
 
 target_dict = {}
+for k in scratch_dict.keys():
+    is_control, name = get_node_name(k, 'control_')
+    if is_control:
+        copy_k = 'model.diffusion_' + name
+    else:
+        copy_k = k
+    if copy_k in pretrained_weights:
+        target_dict[k] = pretrained_weights[copy_k].clone()
+        print('k: ', k, 'copy_k: ', copy_k)
+    else:
+        target_dict[k] = scratch_dict[k].clone()
+        print(f'These weights are newly added: {k}')
+
+
 for k in scratch_dict.keys():
     is_control, name = get_node_name(k, 'control_')
     if is_control:

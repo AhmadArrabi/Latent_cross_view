@@ -47,7 +47,7 @@ class ControlledUnetModel(UNetModel):
                     #print('INPUT BLOCK SHAPE out: ', h.shape, '*'*20)
                     hs.append(h)
                 #print('BEFORE MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
-                h = self.middle_block(h, emb, context)
+            h = self.middle_block(h, emb, context)
                 #print('AFTER MIDDLE BLOCK SHAPE: ', h.shape, '*'*20)
 
             if control is not None:
@@ -75,7 +75,8 @@ class ControlledUnetModel(UNetModel):
 
             for module in self.input_blocks:
                 h = module(h, emb, context)
-                h += control.pop()
+                temp = control.pop()
+                h += temp
                 hs.append(h)
             
             h = self.middle_block(h, emb, context)
@@ -116,6 +117,7 @@ class ResNet34(nn.Module):
 class ConvAlignBlock(nn.Module):
     """
     Mini conv block to align feature map's dimensions with the ControlledUnet 
+    controlNey used a copy of the Unet encoder so this was not needed
     """
     def __init__(self,
                 dims,
@@ -132,17 +134,17 @@ class ConvAlignBlock(nn.Module):
         #conv layers
         self.conv_layers = nn.ModuleDict()
         self.conv_layers['downsample_32'] = conv_nd(self.dims, in_channels=channel_mult[0]*model_channels, out_channels=channel_mult[1]*model_channels, kernel_size=3, padding=1, stride=2)
-        self.conv_layers['BN_downsample_32'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
+        #self.conv_layers['BN_downsample_32'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
         self.conv_layers['ch_reduction_320'] = conv_nd(self.dims, in_channels=channel_mult[1]*model_channels, out_channels=channel_mult[0]*model_channels, kernel_size=1, padding=0, stride=1)
-        self.conv_layers['BN_ch_reduction_320'] = nn.BatchNorm2d(channel_mult[0]*model_channels)
+        #self.conv_layers['BN_ch_reduction_320'] = nn.BatchNorm2d(channel_mult[0]*model_channels)
 
         self.conv_layers['downsample_16'] = conv_nd(self.dims, in_channels=channel_mult[1]*model_channels, out_channels=channel_mult[2]*model_channels, kernel_size=3, padding=1, stride=2)
-        self.conv_layers['BN_downsample_16'] = nn.BatchNorm2d(channel_mult[2]*model_channels)
+        #self.conv_layers['BN_downsample_16'] = nn.BatchNorm2d(channel_mult[2]*model_channels)
         self.conv_layers['ch_reduction_640'] = conv_nd(self.dims, in_channels=channel_mult[2]*model_channels, out_channels=channel_mult[1]*model_channels, kernel_size=1, padding=0, stride=1)
-        self.conv_layers['BN_ch_reduction_640'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
+        #self.conv_layers['BN_ch_reduction_640'] = nn.BatchNorm2d(channel_mult[1]*model_channels)
 
         self.conv_layers['downsample_8'] = conv_nd(self.dims, in_channels=channel_mult[2]*model_channels, out_channels=channel_mult[3]*model_channels, kernel_size=3, padding=1, stride=2)     
-        self.conv_layers['BN_downsample_8'] = nn.BatchNorm2d(channel_mult[3]*model_channels)
+        #self.conv_layers['BN_downsample_8'] = nn.BatchNorm2d(channel_mult[3]*model_channels)
 
         #zero convs for output block
         self.zero_convs = nn.ModuleList()
@@ -191,19 +193,19 @@ class ConvAlignBlock(nn.Module):
             outs[1] = self.zero_convs[1](z)
             outs[2] = self.zero_convs[2](z)
 
-            z = nn.functional.silu(self.conv_layers['BN_downsample_32'](self.conv_layers['downsample_32'](z)))
+            z = nn.functional.silu(self.conv_layers['downsample_32'](z))
             outs[4] = self.zero_convs[4](z)
             outs[5] = self.zero_convs[5](z)
 
-            outs[3] = self.zero_convs[3](nn.functional.silu(self.conv_layers['BN_ch_reduction_320'](self.conv_layers['ch_reduction_320'](z))))
+            outs[3] = self.zero_convs[3](nn.functional.silu(self.conv_layers['ch_reduction_320'](z)))
             
-            z = nn.functional.silu(self.conv_layers['BN_downsample_16'](self.conv_layers['downsample_16'](z)))
+            z = nn.functional.silu(self.conv_layers['downsample_16'](z))
             outs[7] =self.zero_convs[7](z)
             outs[8] =self.zero_convs[8](z)
 
-            outs[6] = self.zero_convs[6](nn.functional.silu(self.conv_layers['BN_ch_reduction_640'](self.conv_layers['ch_reduction_640'](z))))
+            outs[6] = self.zero_convs[6](nn.functional.silu(self.conv_layers['ch_reduction_640'](z)))
             
-            z = nn.functional.silu(self.conv_layers['BN_downsample_8'](self.conv_layers['downsample_8'](z)))
+            z = nn.functional.silu(self.conv_layers['downsample_8'](z))
             outs[9] = self.zero_convs[9](z)
             outs[10] = self.zero_convs[10](z)
             outs[11] = self.zero_convs[11](z)
@@ -256,6 +258,7 @@ class ControlSeq(nn.Module):
         #self.VAE_conv = conv_nd(dims, in_channels=4, out_channels=model_channels, kernel_size=3, padding=1, stride=2)
         # more conv        
         #self.geo_conv = conv_nd(3, in_channels=14, out_channels=1, kernel_size=1) #more methods than 1x1 conv
+        self.geo_conv = conv_nd(dims, 14*320, model_channels, 3, padding=1)
         self.conv_align_block = ConvAlignBlock(dims, channel_mult, model_channels)
         
     def log_polar_transform(self, x:str):
@@ -265,7 +268,7 @@ class ControlSeq(nn.Module):
     def make_zero_conv(self, in_channels, out_channels):
         return zero_module(conv_nd(self.dims, in_channels, out_channels, 1, padding=0))
     
-    def geo_mapping(self, hint_latent, seq_pos):
+    def geo_mapping(self, hint_latent, seq_pos, B):
         """
         Creates a feature map where each vector from the sequence is matched to its x,y position
         args:
@@ -278,8 +281,8 @@ class ControlSeq(nn.Module):
         #print('HINT LATENT BEFORE ANYTHING JUST AFTER THE RESNET: ', hint_latent.shape)
         #print('DESIRED HEIGHT AND WIDTH IN GEO MAPPING: ', desired_height, desired_width)
 
-        vertical_pad = (desired_height - hint_latent.shape[3])//2
-        horizontal_pad = (desired_width - hint_latent.shape[4])//2
+        vertical_pad = (desired_height - hint_latent.shape[2])//2
+        horizontal_pad = (desired_width - hint_latent.shape[3])//2
         #print('vertical_pad: ', vertical_pad, '*'*20)
         #print('horizontal_pad: ', horizontal_pad, '*'*20)
 
@@ -288,31 +291,43 @@ class ControlSeq(nn.Module):
         
         # pixel to latent space
         latent_ratio = desired_height/self.img_size
-        x_shift = (seq_pos[:,:,0]*latent_ratio).round()
-        y_shift = (seq_pos[:,:,1]*latent_ratio).round()
+
+        x_shift = (seq_pos[:,0]*latent_ratio).round()
+        y_shift = (seq_pos[:,1]*latent_ratio).round()
+        #x_shift = (seq_pos[:,:,0]*latent_ratio).round()
+        #y_shift = (seq_pos[:,:,1]*latent_ratio).round()
         #x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
         #y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
         #print('X SHIFT: ', x_shift.shape, '*'*20)
         #print('Y SHIFT: ', y_shift.shape, '*'*20)
         #print('X SHIFT: ', x_shift, '*'*20)
         #print('Y SHIFT: ', y_shift, '*'*20)
-        
-        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
 
-        affine_matrix[:,:,0,-1] = x_shift
-        affine_matrix[:,:,1,-1] = y_shift
+        affine_matrix = torch.tensor([[1, 0, 0.0], [0, 1, 0]], dtype=hint_padded.dtype).to('cuda')
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(B*14,1,1)   #for each seq
+
+        affine_matrix[:,0,-1] = x_shift
+        affine_matrix[:,1,-1] = -y_shift
+        
+        #affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
+        #affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
+        #affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
+
+        #affine_matrix[:,:,0,-1] = x_shift
+        #affine_matrix[:,:,1,-1] = y_shift
         
         #we can do the same as before spliting the tensor and then cat instead of indexing
-        hint_shifted = hint_padded.clone()
-        for seq in range(self.seq_padding):
-            hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
+        #hint_shifted = hint_padded.clone()
+        #for seq in range(self.seq_padding):
+        #    hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
         #print("HINT SHIFTED SHAPE: ", hint_shifted.shape)
         
-        mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
-        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
+        #mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
+        #return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
         #return self.geo_conv(hint_shifted).squeeze()
+
+        return kornia.geometry.transform.warp_affine(hint_padded, affine_matrix, dsize=(desired_height, desired_width))
+    
     
     def prep_input(self, x):
         if len(x.shape) == 3:
@@ -321,19 +336,40 @@ class ControlSeq(nn.Module):
         return x
     
     def forward(self, cond):
-        hint = cond['c_concat'][0]
-        seq_pos = cond['c_seq_pos'][0]
-        seq_mask = cond['c_seq_mask'][0]
+        #hint = cond['c_concat'][0]
+        #seq_pos = cond['c_seq_pos'][0]
+        #seq_mask = cond['c_seq_mask'][0]
+        
+        B = cond['c_concat'][0].shape[0]
+        if B == 14: B = 1
+        hint = cond['c_concat'][0].view(B*14, 3, 512, 512)
+        seq_pos = cond['c_seq_pos'][0].view(B*14, 2)
+
+        #print('-'*75)
+        #print('c_concat shape: ', cond['c_concat'][0].shape)
+        #print('HINT shape: ', hint.shape)
+        guided_hint = self.backbone_base(hint) #[B*14, 320, 32, 32]
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = self.geo_mapping(guided_hint, seq_pos, B) #[2*14, 320, 64, 64]
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = guided_hint.view(B, 14*320, 64, 64) #[2, 14*320, 64, 64]
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = self.geo_conv(guided_hint) #[2, 320, 64, 64]
+        #print('HINT shape: ', guided_hint.shape)
+        return self.conv_align_block(guided_hint)
+        #print('HINT shape: ', guided_hint.shape)
+        #print('-'*75)
+
         #print('-'*100)
         #print('HINT: ', hint)
         
         #BACKBONE
-        splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
-        latents = []
+        #splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
+        #latents = []
 
         #(BS, C, H, W))
-        for i, split in enumerate(splited_seq):
-            latents.append(self.backbone_base.forward(split.squeeze()).unsqueeze(0))
+        #for i, split in enumerate(splited_seq):
+            #latents.append(self.backbone_base.forward(split.squeeze()).unsqueeze(0))
             #split = self.prep_input(split.squeeze())
             #z = (self.backbone_base.encode(split).sample() * 0.18215).detach()
             #if i == 1:
@@ -342,7 +378,7 @@ class ControlSeq(nn.Module):
             #    torchvision.utils.save_image(img, 'DECODED Z !!!!!!!!!.png')
             #z = self.VAE_conv(z)
             #latents.append(z.unsqueeze(0))
-        hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
+        #hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
         #print('-'*100)
         #print('HINT LATENT: ', hint_latent)
 
@@ -350,12 +386,12 @@ class ControlSeq(nn.Module):
         #TODO: apply transformation
 
         #MASKING
-        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
+        #hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
         #print('-'*100)
         #print('HINT MASKED: ', hint_masked)
         
         #GEOMAPPING
-        feature_map = self.geo_mapping(hint_masked, seq_pos)
+        #feature_map = self.geo_mapping(hint_masked, seq_pos)
         #print('AFTER GEOMAPING: ',feature_map.shape, '*'*50)
         #print('-'*100)
         #print('FEATUR MAP: ', feature_map)
@@ -363,7 +399,7 @@ class ControlSeq(nn.Module):
         #print('-'*100)
         #print('GEO new 1x1 added: ',self.geo_conv.weight)
 
-        return self.conv_align_block(feature_map)
+        #return self.conv_align_block(feature_map)
 #############################################################################################################
 class ControlNet(nn.Module):
     def __init__(
@@ -530,6 +566,7 @@ class ControlNet(nn.Module):
                         )
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
                 self.zero_convs.append(self.make_zero_conv(ch))
+                
                 self._feature_size += ch
                 input_block_chans.append(ch)
             if level != len(channel_mult) - 1:
@@ -555,6 +592,7 @@ class ControlNet(nn.Module):
                 ch = out_ch
                 input_block_chans.append(ch)
                 self.zero_convs.append(self.make_zero_conv(ch))
+                
                 ds *= 2
                 self._feature_size += ch
 
@@ -597,7 +635,7 @@ class ControlNet(nn.Module):
         )
         self.middle_block_out = self.make_zero_conv(ch)
         self._feature_size += ch
-
+        
     def make_zero_conv(self, channels):
         return TimestepEmbedSequential(zero_module(conv_nd(self.dims, channels, channels, 1, padding=0)))
 
@@ -622,25 +660,7 @@ class ControlNet(nn.Module):
         outs.append(self.middle_block_out(h, emb, context))
 
         return outs
-        #for module, zero_conv in zip(self.input_blocks, self.zero_convs):
-        #    if guided_hint is not None:
-        #        h = module(h, emb, context)
-        #        # resize the guided signal to main SD size
-        #        resized_guided_hint = torch.nn.functional.interpolate(
-        #            guided_hint, 
-        #            size=(h.shape[2], 
-        #                  h.shape[3]), 
-        #            mode="bilinear")
-        #        h += resized_guided_hint
-        #        guided_hint = None
-        #    else:
-        #        h = module(h, emb, context)
-        #    outs.append(zero_conv(h, emb, context))
-#
-        #h = self.middle_block(h, emb, context)
-        #outs.append(self.middle_block_out(h, emb, context))
-#
-        #return outs
+    
 ############################################################################################################
 class ControlLDM(LatentDiffusion):
     def __init__(self, control_stage_config,
@@ -775,8 +795,8 @@ class ControlLDM(LatentDiffusion):
             #print('CONTROL', '-'*100, control)
             #print(self.control_model.named_parameters())
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of ControlSeq
-            for i, c in enumerate(control):
-                print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
+            #for i, c in enumerate(control):
+            #    print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
             #print('PREDICTION: ', eps)
             #print(diffusion_model.named_parameters())
@@ -784,9 +804,12 @@ class ControlLDM(LatentDiffusion):
         elif self.control_seq=='seq_images_one_cond':
             #self.control_model = ControlNet_seq
             control = self.control_model(x=x_noisy, timesteps=t, cond=cond)
-            control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
+            #control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
+            print('-'*100)
+            #for i, c in enumerate(control):
+            #    print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
-    
+            
         #s = dict(list(self.named_parameters()))
         #s_ = [(key, val.grad) for key, val in s.items() if 'control_model' in key]
         #print('*'*70)
@@ -805,10 +828,25 @@ class ControlLDM(LatentDiffusion):
         #print('EPS mn: ', eps.mean())
         #print('EPS mx: ', eps.max())
 
-
         #for name, param in self.control_model.named_parameters():
-        #    if param.requires_grad:
-        #        print(name, param.shape, param.requires_grad, param.grad_fn, param.is_leaf, param.grad)
+        #    #print(name, param.shape, param.requires_grad, param.grad_fn, param.is_leaf, param.grad.mean())
+        #    #if 'zero' in name:
+        #        print(name, param.shape, param.mean(), param.requires_grad, param.is_leaf)
+        #        try:
+        #            print(param.grad.mean())
+        #        except:
+        #            print("no grad found to get the mean of _|_")
+
+        #for name, param in self.model.diffusion_model.named_parameters():
+        #    #print(name, param.shape, param.requires_grad, param.grad_fn, param.is_leaf, param.grad.mean())
+        #    #if 'zero' in name:
+        #    print(name, param.shape, param.mean(), param.requires_grad, param.is_leaf)
+        #    try:
+        #        print(param.grad.mean())
+        #    except:
+        #        print("no grad found to get the mean of _|_")
+
+
         return eps
 
     @torch.no_grad()
@@ -895,7 +933,11 @@ class ControlLDM(LatentDiffusion):
         if unconditional_guidance_scale > 1.0:
             uc_full = c
             uc_full['c_crossattn'] = [self.get_unconditional_conditioning(N)]
-            #uc_full['c_concat'] = torch.zeros_like(c_cat)
+            uc_full['c_concat'] = torch.zeros_like(c['c_concat'][0])
+            uc_full['c_seq_pos'] = torch.zeros_like(c['c_seq_pos'][0])
+            uc_full['c_seq_len'] = torch.zeros_like(c['c_seq_len'][0])
+            uc_full['c_seq_mask'] = torch.zeros_like(c['c_seq_mask'][0])
+
             samples_cfg, _ = self.sample_log(cond=c,
                                              batch_size=N, ddim=use_ddim,
                                              ddim_steps=ddim_steps, eta=ddim_eta,
@@ -990,51 +1032,60 @@ class ControlNet_seq(ControlNet):
             zero_module(conv_nd(dims, 14*320, model_channels, 3, padding=1))
         )
 
-    def geo_mapping(self, hint_latent, seq_pos):
+    def geo_mapping(self, hint_latent, seq_pos, B):
         desired_height = 64
         desired_width = 64
 
         vertical_pad = (desired_height - 32)//2
         horizontal_pad = (desired_width - 32)//2
 
-        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
+        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad))
         
         # pixel to latent space
         latent_ratio = 64/512
-        seq_pos = seq_pos.view(2*14, 2)
+        seq_pos = seq_pos.view(B*14, 2)
 
         x_shift = (seq_pos[:,0]*latent_ratio).round()
         y_shift = (seq_pos[:,1]*latent_ratio).round()
         
-        affine_matrix = torch.tensor([[1, 0, 0.0], [0, 1, 0]], dtype=hint_padded.dtype)
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(2*14,1,1)   #for each seq
+        affine_matrix = torch.tensor([[1, 0, 0.0], [0, 1, 0]], dtype=hint_padded.dtype).to('cuda')
+        affine_matrix = affine_matrix.unsqueeze(0).repeat(B*14,1,1)   #for each seq
 
         affine_matrix[:,0,-1] = x_shift
         affine_matrix[:,1,-1] = -y_shift
+
+        #print('AFFINE MATRIX SHAPE: ', affine_matrix.shape)
+        #print('seq pos SHAPE: ', seq_pos.shape)
+        #print('hinr padded SHAPE: ', hint_padded.shape)
             
         return kornia.geometry.transform.warp_affine(hint_padded, affine_matrix, dsize=(desired_height, desired_width))
     
     def forward(self, x, timesteps, cond, **kwargs):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
         emb = self.time_embed(t_emb)
-        hint = cond['c_concat'].view(2*14, 3, 512, 512)
-        print('-'*75)
-        print('c_concat shape: ', cond['c_concat'].shape)
-        print('HINT shape: ', hint.shape)
-        guided_hint = self.input_hint_block(hint, emb, context) #[2*14, 320, 32, 32]
-        print('HINT shape: ', guided_hint.shape)
-        guided_hint = self.geo_mapping(guided_hint, cond['c_seq_pos']) #[2*14, 320, 64, 64]
-        print('HINT shape: ', guided_hint.shape)
-        guided_hint = guided_hint.view(2, 14*320, 64, 64)
-        print('HINT shape: ', guided_hint.shape)
-        guided_hint = self.input_hint_block_2(guided_hint) #[2, 320, 64, 64]
-        print('HINT shape: ', guided_hint.shape)
+        #print('c_concat shape: ', cond['c_concat'][0].shape)
+        B = cond['c_concat'][0].shape[0]
+        if B == 14: B = 1
+        hint = cond['c_concat'][0].view(B*14, 3, 512, 512)
         context = torch.cat(cond['c_crossattn'], 1) 
-        print('-'*75)
+
+        #print('-'*75)
+        #print('c_concat shape: ', cond['c_concat'][0].shape)
+        #print('HINT shape: ', hint.shape)
+        guided_hint = self.input_hint_block(hint, emb, context) #[2*14, 320, 32, 32]
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = self.geo_mapping(guided_hint, cond['c_seq_pos'][0], B) #[2*14, 320, 64, 64]
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = guided_hint.view(B, 14*320, 64, 64)
+        #print('HINT shape: ', guided_hint.shape)
+        guided_hint = self.input_hint_block_2(guided_hint, emb) #[2, 320, 64, 64]
+        #print('HINT shape: ', guided_hint.shape)
+        #print('-'*75)
 
         outs = []
-
+        
         h = x.type(self.dtype)
+        
         for module, zero_conv in zip(self.input_blocks, self.zero_convs):
             if guided_hint is not None:
                 h = module(h, emb, context)
@@ -1043,102 +1094,10 @@ class ControlNet_seq(ControlNet):
             else:
                 h = module(h, emb, context)
             outs.append(zero_conv(h, emb, context))
-
+        
         h = self.middle_block(h, emb, context)
         outs.append(self.middle_block_out(h, emb, context))
 
         return outs
+
     
-class ResNet34_zero_conv(nn.Module):
-    """
-    thanks: https://gitlab.com/vail-uvm/geodtr
-    """
-    def __init__(self, model_channels):
-        super().__init__()
-        net = models.resnet34(pretrained = True) #weights = RESNET.WEIGHTS to fix the warning
-
-        layers_in = list(net.children())[:3]    #remove pooling layer
-        layers_out = list(net.children())[4:-2] #remove classifiers
-
-        #add last conv layer so the channel width becomes flexible (rn it matches the SD model, model_channels = 320)
-        layers_conv = [nn.Sequential(zero_module(conv_nd(2 , in_channels=layers_out[-1][-1].conv2.in_channels, out_channels=model_channels, kernel_size=3, padding=1)))] 
-        self.layers = nn.Sequential(*layers_in, *layers_out, *layers_conv)
-
-    def forward(self, x):
-        return self.layers(x)
-    
-class ControlSeq_condition(nn.Module):
-    def __init__(
-            self,
-            seq_padding,
-            model_channels,
-            channel_mult,
-            transformation,
-            img_size=512,
-            dims=2,
-            device='cuda'            
-        ):
-        super().__init__()
-
-        self.latent_size = None
-        self.seq_padding = seq_padding
-        self.model_channels = model_channels
-        self.channel_mult = channel_mult
-        self.transformation = transformation
-        self.img_size = img_size
-        self.dims = dims 
-        self.device = device
-        
-        self.backbone_base = ResNet34_zero_conv(model_channels) 
-        
-    def geo_mapping(self, hint_latent, seq_pos):
-        desired_height = self.latent_size[2]
-        desired_width = self.latent_size[3]
-
-        vertical_pad = (desired_height - hint_latent.shape[3])//2
-        horizontal_pad = (desired_width - hint_latent.shape[4])//2
-
-        hint_padded = torch.nn.functional.pad(hint_latent, (horizontal_pad, horizontal_pad,vertical_pad, vertical_pad)).to(self.device)
-        
-        # pixel to latent space
-        latent_ratio = desired_height/self.img_size
-        x_shift = torch.clip((seq_pos[:,:,0]*latent_ratio).round(), min=-horizontal_pad, max=horizontal_pad)
-        y_shift = torch.clip((seq_pos[:,:,1]*latent_ratio).round(), min=-vertical_pad, max=vertical_pad)
-        
-        affine_matrix = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=hint_padded.dtype)
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[1],1,1)   #for each seq
-        affine_matrix = affine_matrix.unsqueeze(0).repeat(hint_padded.shape[0],1,1,1).to(self.device) #for each batch
-
-        affine_matrix[:,:,0,-1] = x_shift
-        affine_matrix[:,:,1,-1] = y_shift
-        
-        #we can do the same as before spliting the tensor and then cat instead of indexing
-        hint_shifted = hint_padded.clone()
-        for seq in range(self.seq_padding):
-            hint_shifted[:,seq,] =  kornia.geometry.transform.warp_affine(hint_padded[:,seq,], affine_matrix[:,seq,], dsize=(desired_height, desired_width))
-        
-        mask = hint_shifted < 1e-06 #should be zero but the tranformation may switch 0 to 1e-07
-        return ((hint_shifted*mask).sum(dim=1)/mask.sum(dim=1)) #mean without zeros along channel dimension 
-    
-    def forward(self, cond):
-        hint = cond['c_concat'][0]
-        seq_pos = cond['c_seq_pos'][0]
-        seq_mask = cond['c_seq_mask'][0]
-        
-        #BACKBONE
-        splited_seq = torch.split(hint, dim=1, split_size_or_sections=1)
-        latents = []
-        for split in splited_seq:
-            latents.append(self.backbone_base(split.squeeze()).unsqueeze(0))
-        hint_latent = einops.rearrange(torch.cat(latents), ('seq b c h w -> b seq c h w'))
-
-        #PERSPECTIVE TRANSFORMATION
-        #TODO: apply transformation
-
-        #MASKING
-        hint_masked = hint_latent*seq_mask[(..., ) + (None, ) * 3] #equivalent to doing unsqueeze(-1) three times  
-        
-        #GEOMAPPING
-        feature_map = self.geo_mapping(hint_masked, seq_pos)
-
-        return feature_map
