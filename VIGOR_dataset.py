@@ -42,8 +42,8 @@ def aerial_transform(size, mode):
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[.5,.5,.5],
-                       std=[.5,.5,.5])
+            #transforms.Normalize(mean=[.5,.5,.5],
+            #           std=[.5,.5,.5])
         ])
     elif "test" in mode:
         return transforms.Compose([
@@ -60,8 +60,8 @@ def ground_transform(size, mode):
         return transforms.Compose([
             transforms.Resize(size=tuple(size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[.5,.5,.5],
-                        std=[.5,.5,.5])
+            #transforms.Normalize(mean=[.5,.5,.5],
+            #            std=[.5,.5,.5])
         ])
     elif "test" in mode:
         return transforms.Compose([
@@ -74,7 +74,8 @@ def ground_transform(size, mode):
         raise RuntimeError(f"{mode} not implemented")
 
 class VIGOR(torch.utils.data.Dataset):
-    def __init__(self, mode = 'train', root = '/gpfs3/scratch/aarrabi/VIGOR', same_area=True, args=None):
+    def __init__(self, mode = 'train', root = '/gpfs2/scratch/xzhang31/VIGOR', same_area=True, args=None):
+        #'/gpfs3/scratch/aarrabi/VIGOR'
         super(VIGOR, self).__init__()
 
         self.args = args
@@ -88,7 +89,7 @@ class VIGOR(torch.utils.data.Dataset):
         
         # The below size is temporary should check later
         self.sat_size = [512, 512]#[320, 320]
-        self.grd_size = [512, 512]#[1024, 2048]
+        self.grd_size = [1024, 2048]#[512, 512]#[1024, 2048]
 
         # transforms notice strong aug is added
         self.transform_ground = ground_transform(size=self.grd_size, mode=self.mode)
@@ -290,12 +291,12 @@ def tensor_to_image(tensor):
 if __name__ == "__main__":
 
     dataset = VIGOR(mode="train", same_area=True)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=1)
     
     idx = 0
     for i in dataloader:
         idx += 1
-        if idx == 10:
+        if idx == 2:
             tensor_to_image(i['jpg'][0]).save("aerial.png")
             grounds = torch.split(i['hint'][0], 1)
             
@@ -307,9 +308,10 @@ if __name__ == "__main__":
             #num_images = int(num_channel) // 3
             #grd_images = i['hint'].reshape(num_images, 3, i['hint'].shape[2], i['hint'].shape[3])
             #torchvision.utils.save_image(i['hint'][0], f"grd{idx}.png")
-            print(idx, "#"*30)
-            print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
-                   '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])
-            print(i['delta'][0])
+            
+            #print(idx, "#"*30)
+            #print('aerial shape: ', i['jpg'].shape,'\nhint (ground tensor) shape: ', i['hint'].shape,
+            #       '\ntext: ', i['txt'], '\ndelta ', i['delta'].shape, '\nnumber of ground: ', i['len'])
+            #print(i['delta'][0])
             break
             

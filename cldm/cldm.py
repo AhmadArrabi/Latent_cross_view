@@ -782,9 +782,9 @@ class ControlLDM(LatentDiffusion):
             #self.control_model = controlNet
             control = self.control_model(x=x_noisy, hint=torch.cat(cond['c_concat'], 1), timesteps=t, context=cond_txt)
             control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
-            print('-'*100)
-            for i, c in enumerate(control):
-                print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
+            #print('-'*100)
+            #for i, c in enumerate(control):
+            #    print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
             #print('-'*100)
             #print('EPS: ', eps, '\nSHAPE: ', eps.shape, '\nGRAD: ', eps.grad)
@@ -805,7 +805,7 @@ class ControlLDM(LatentDiffusion):
             #self.control_model = ControlNet_seq
             control = self.control_model(x=x_noisy, timesteps=t, cond=cond)
             #control = [c * scale for c, scale in zip(control, self.control_scales)] #output of forward process of controlNet
-            print('-'*100)
+            #print('-'*100)
             #for i, c in enumerate(control):
             #    print(i, 'CONTROL: ', c.mean(), '\nSHAPE: ', c.shape, '\nGRAD: ', c.grad)
             eps = diffusion_model(x=x_noisy, timesteps=t, context=cond_txt, control=control, only_mid_control=self.only_mid_control)
@@ -867,7 +867,7 @@ class ControlLDM(LatentDiffusion):
         N = min(z.shape[0], N)
         n_row = min(z.shape[0], n_row)
         log["reconstruction"] = self.decode_first_stage(z)
-        #log["control"] = c_cat * 2.0 - 1.0
+        log["control"] = c_cat * 2.0 - 1.0
         log["conditioning"] = log_txt_as_img((512, 512), batch[self.cond_stage_key], size=16)
 
         if plot_diffusion_rows:

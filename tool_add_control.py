@@ -41,20 +41,6 @@ for k in scratch_dict.keys():
         copy_k = k
     if copy_k in pretrained_weights:
         target_dict[k] = pretrained_weights[copy_k].clone()
-        print('k: ', k, 'copy_k: ', copy_k)
-    else:
-        target_dict[k] = scratch_dict[k].clone()
-        print(f'These weights are newly added: {k}')
-
-
-for k in scratch_dict.keys():
-    is_control, name = get_node_name(k, 'control_')
-    if is_control:
-        copy_k = 'model.diffusion_' + name
-    else:
-        copy_k = k
-    if copy_k in pretrained_weights:
-        target_dict[k] = pretrained_weights[copy_k].clone()
     else:
         target_dict[k] = scratch_dict[k].clone()
         print(f'These weights are newly added: {k}')

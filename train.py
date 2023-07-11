@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from cldm.logger import ImageLogger
 from cldm.model import create_model, load_state_dict
 import argparse
-from VIGOR_dataset import *
+from VIGOR_dataset_layout import *
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 if __name__ == "__main__":
@@ -21,8 +21,8 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Configs
-    resume_path = './models/control_sd15_seq.ckpt'
-    #resume_path = './chpts/ACTUAL GEOMAPPING/last.ckpt'
+    resume_path = './models/control_sd15_ini.ckpt'
+    #resume_path = './lightning_logs/version_10908718/checkpoints/epoch=7-step=1503.ckpt'
     batch_size = opt.batch_size
     logger_freq = opt.logger_freq
     learning_rate = opt.lr
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     exp = opt.exp_name
 
     # First use cpu to load models. Pytorch Lightning will automatically move it to GPUs.
-    model = create_model('./models/cldm_v15_2.yaml').cpu()
+    model = create_model('./models/cldm_v15.yaml').cpu()
     model.load_state_dict(load_state_dict(resume_path, location='cpu'))
     model.learning_rate = learning_rate
     model.sd_locked = sd_locked
@@ -50,10 +50,10 @@ if __name__ == "__main__":
         )
     
     # Misc
-    dataset = VIGOR(mode="train", same_area=True)
+    dataset = VIGOR()
     dataloader = DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=True)
     logger = ImageLogger(batch_frequency=logger_freq, local_dir=exp)
-    trainer = pl.Trainer(gpus=gpu, precision=32, callbacks=[logger, checkpoint_callback], strategy="ddp", min_epochs=min_epoch, max_epochs=max_epoch)
+    trainer = pl.Trainer(gpus=gpu, precision=32, callbacks=[logger], strategy="ddp", min_epochs=min_epoch, max_epochs=max_epoch)
 
     # Train!
     trainer.fit(model, dataloader)

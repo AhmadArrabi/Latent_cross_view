@@ -920,10 +920,10 @@ class LatentDiffusion(DDPM):
         #print('*'*100)
         #print(loss_dict)
         #for k, i in loss_dict.items(): print(i.requires_grad, i.grad)
-        print('*'*100)
-        print(loss)
-        print(loss.requires_grad, loss.grad, loss.is_leaf)
-        print('*'*100)
+        #print('*'*100)
+        #print(loss)
+        #print(loss.requires_grad, loss.grad, loss.is_leaf)
+        #print('*'*100)
 
         return loss, loss_dict
 
