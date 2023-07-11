@@ -3,12 +3,17 @@
 training/
 lightning_logs/
 image_log/
+chpts/
+Seattle/
+log/
 
 *.pth
 *.pt
 *.ckpt
 *.safetensors
 *.png
+*.jpg
+*.out
 
 gradio_pose2image_private.py
 gradio_canny2image_private.py
